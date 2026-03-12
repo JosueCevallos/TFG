@@ -1,15 +1,25 @@
 DUDAS REUNION:
 
 En cada bloque de datos (Light / Dark), en el Branch dataChA hay 10000 muestras. Es correcto que en el
-xlabel ponga muestras? Por que en el artículo usan como xlabel unidad de tiempo en microsegundos. (pag. 4)
+xlabel ponga muestras?
 
-En la grafica de la media:
+En la grafica de la media de todas las señales:
  De cada evento / señal, se calcula la media de cada muestra, una por una. Por ejemplo:
 
  Evento / señal 0 : muestra 0	---\
  Evento / señal 1 : muestra 0	----\
  Evento / señal 2 : muestra 0	----/	Calcula la media de la muestra 0 de los 4722 señales
- Evento / señal 3 : muestra 0 	---/
- Evento / señal 4722 : muestra 0 
+ Evento / señal 3 : muestra 0 	--/
+ ....
+Total eventos / señales: 4722
 
-Para poner marco temporal en el eje X, basta averiguar cada cuanto tiempo el TES toma una muestra.
+
+12/03/2026
+
+Q: A diferencia del modelo de CNN usado para clasificación binaria, el modelo devuelve un 1 si el pulso es Light o 0 si es Dark. 
+Pero en el caso de la CNN de regresión, lo que nos devuelve sería un porcentaje de que tanto se parece una señal a Light o Dark no?
+ 
+A: Si lo haces mediante aprendizaje supervisado sería como dices.
+Capas convolucionales puedes utilizar también en autoencoders si quieres.
+Si prefieres hacerlo supervisado al principio, adelante.
+ 
