@@ -1,0 +1,29 @@
+## Preprocesamiento de los datos antes de entrenar los modelos
+
+1. Data collection: obtenemos los datos raw. En este caso, los ficheros .root que contienen los pulso light y dark
+2. Data cleaning: limpiamos los datos. Eliminamos columnas vacías, datos duplicados, datos irrelevantes, etc. Para este
+proyecto, solo nos quedaremos con la columna dataChA, que contiene los pusos. Dentro de esta columna revisaremos que no 
+haya pulsos duplicados.
+3. Data Exploring: eliminamos valores atípicos que puedan sesgar el entrenamiento de los modelos. Examinaremos tmabién si 
+hay relaciones entre caracterísitcas, en este caso no tenemos más caracteristicas.
+4. Data preprocessing: si es necesario, normalizamos los datos o los escalamos, o convertirlos a un formato que el modelo
+pueda entender. No es el caso, están todos los pulsos en el mismo formato.
+5. Data splitting: división de los datos en **Training - validation - testing**
+    - 1000 light + 1000 dark para entrenamiento
+        - 80% entrenamiento y 20% validation
+    - el resto para testing
+
+### Finalmente se ha decidido por NO filtrar el dataset
+
+Explicación:
+Un pulso doble suele cumplir:
+- Dos máximos locales muy cercanos
+- Separación temporal pequeña
+- Forma global similar a un solo pulso (pero “duplicado”)
+
+## DUDAS:
+Si tengo dos máximos locales en un solo pulso, al eliminar UNO  de ellos, no estoy eliminando el puslo, estaría eliminando muestras del pulso
+Seguirían siendo 4722 pulsos pero esa muestra en vex de 10000 tendrá (por ejemplo) 9000 muestras.
+**EN todo caso si quiero eliminar pulsos dobles sería comparar aquellos que estén practicamente superpuestos y quedarme con uno solo.**
+**O lo que viene a ser lo mismo, ver si coinciden sus picos maximos y minimos, ya que si coinciden o son practiamente iguales, puedo quedarme con solo un pulso representativo**.
+    
