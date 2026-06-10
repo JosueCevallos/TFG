@@ -47,3 +47,51 @@ Tenemos una primera versión del autoencoder. Se abren dos caminos:
 ver un mapa de distribución de los pulsos.
 
 Idea: aplicaremos ambas opciones y nos quedaremos con la que mejor separe los pulsos LIGHT de los DARK.
+
+### DIA 24/04
+Errores en el entrenamiento del modelo:
+history = autoencoder.fit(X_train_encoder, X_train_encoder,...)
+mensaje de error:
+
+ValueError",
+	"message": "Exception encountered when calling Functional.call().\n\n\u001b[1mInput 0 with name 'None' of layer 'dense_16' is incompatible with the layer: expected axis -1 of input shape to have value 0, but received input with shape (32, 1000, 1)
+
+Explicación:
+Hay una desonexión entre la capa de entrada Input definida en el diseño de modelo:
+<center><img src="images/error_in_shape.png"></center>
+
+y la forma real en la que llegan los datos desde el array:
+Señales 1D por tanto un solo canal: (batch, longitud, canales)  = (2000,1000,1)
+
+<b>Solución: (1000,1)</b>
+Sin embargo, esto abre otro problema...  
+
+Las capas Dense en Keras funcionan de forma particular con datos 3D: si les pasamos algo de forma (1000, 1), la capa Dense se aplica individualmente a cada una de las 1000 muestras, lo cual no es lo que quieres para un autoencoder de señales...
+Para que el autoencoder procese el pulso de 1000 muestras como un "todo", debes usar capas Flatten y Reshape.
+De hecho si nos fijamos en el diseño de la CNN vemos que se aplica la función Flatten() a cada una de las layers:
+<i>model.add(layers.Flatten())</i>
+
+Resumen: El error "expected axis -1 to have value 0" ocurría porque tu capa Dense intentaba operar sobre una dimensión de tamaño 0 (definida en tu Input). Al cambiarlo a (1000, 1) y usar Flatten, la lógica matemática de la red vuelve a ser coherente.
+
+#### Nueva casuística: pintar el bottleneck
+Me interesa pintar el bottleneck. Como el dato está aplanado, ¿para pintarlo necesito hacer un reshape nuevamente para el bottleneck o no es necesario?
+
+<b>Respuesta:</b>
+No es necesario hacer un reshape. La capa bottleneck es una capa Dense(16), la salida del modelo encoder será un array de forma (2000, 16). Esto significa que cada pulso se ha convertido en un vector plano de 16 números (sus "características comprimidas").
+
+<b>Problema añadido con esto...</b>
+Para graficar con plt.scatter, te encuentras con un problema de dimensiones: no puedes visualizar 16 dimensiones directamente en un plano 2D.
+<b>Solución (la misma que aplicaron en el artículo)</b>
+<i>Reducción de dimensionalidad con PCA:</i>
+De esta manera proyectamos las 16 neuronas en 2 dimensiones. De hecho usar PCA es más fácil de utilizar que la alternativa t-sne. Esto es porque el método PCA, es un método lineal y no requiere ajustes de hiperparámetros complejos.
+
+Ahora ya se puede representar en un plano 2D los puntos del bottleneck...
+plt.scatter(bottleneck_2d[:, 0], bottleneck_2d[:, 1] ...)
+Son las coordenadas cartesianas (x,y) de cada uno de los 2000 pulsos tras haber sido procesados por PCA.
+fLUJO
+Siendo bottleneck_2d[:, 0], los valores del primer componente(PC1), eje X.
+bottleneck_2d[:, 1], los valores del segundo componente (PC2) eje Y.
+
+Problemas de dimensionalidad al dibujar el pulso reconstruido:
+ou're encountering a dimensionality mismatch because the Dense layers in your autoencoder are expecting flattened input, and the predict method needs input with a batch dimension. I will update the DarkPulsesDetector class to correctly handle input and output shapes using Flatten and Reshape layers. I'll also adjust the predict calls and plotting functions to ensure consistent dimensions. I'm also reducing the code_dim to 32, which is more typical for an autoencoder's latent space.
+
