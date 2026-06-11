@@ -41,9 +41,9 @@ import seaborn as sns
 def mostrar_menu():
     """Muestra el menú principal."""
 
-    print("\n" + "=" * 55)
+    print("\n" + "=" * 30)
     print("      TFG - DISCRIMINACIÓN DE RUIDO EN TES")
-    print("=" * 55)
+    print("=" * 30)
     print("1. Cargar datasets")
     print("2. Mostrar jerarquía datasets")
     print("3. Estudio de datasets")
@@ -53,7 +53,7 @@ def mostrar_menu():
     print("7. Isolation Forest")
     print("8. Comparación de modelos")
     print("0. Salir")
-    print("=" * 55)
+    print("=" * 30)
 
 def main():
 
