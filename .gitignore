@@ -1,4 +1,32 @@
 *.root
+figuras_memoria/
+# Caché y configuración local de Python / VS Code
+__pycache__/
+.vscode/
+*.pptx
+
+# PDF compilado de la memoria
+book.pdf
+
+# Auxiliares de LaTeX
+*.aux
+*.log
+*.bbl
+*.blg
+*.bcf
+*.fdb_latexmk
+*.fls
+*.synctex.gz
+*.toc
+*.lof
+*.lot
+*.out
+*.run.xml
+
+# archivos del otro portatil
 rootCourse/
 TFG.code-workspace
 dudas_reunion.txt
+# Copias de seguridad y metadatos de Windows
+backup/
+*:Zone.Identifier
