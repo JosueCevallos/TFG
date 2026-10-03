@@ -1,0 +1,193 @@
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%
+% Generic template for TFC/TFM/TFG/Tesis
+%
+% $Id: estudioTeorico.tex,v 1.5 2015/06/05 00:05:19 macias Exp $
+%
+% By:
+%  + Javier Macías-Guarasa.
+%    Departamento de Electrónica
+%    Universidad de Alcalá
+%  + Roberto Barra-Chicote.
+%    Departamento de Ingeniería Electrónica
+%    Universidad Politécnica de Madrid
+% 
+% Based on original sources by Roberto Barra, Manuel Ocaña, Jesús Nuevo, Pedro Revenga, Fernando Herránz and Noelia Hernández. Thanks a lot to all of them, and to the many anonymous contributors found (thanks to google) that provided help in setting all this up.
+%
+% See also the additionalContributors.txt file to check the name of additional contributors to this work.
+%
+% If you think you can add pieces of relevant/useful examples, improvements, please contact us at (macias@depeca.uah.es)
+%
+% You can freely use this template and please contribute with comments or suggestions!!!
+%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\chapter{Marco teórico}
+\label{cha:Marco-teorico}
+
+\begin{FraseCelebre}
+  \begin{Frase}
+    
+  \end{Frase}
+  \begin{Fuente}
+    
+  \end{Fuente}
+\end{FraseCelebre}
+
+
+\section{Introducción}
+\label{sec:introduccion}
+
+Para comprender el objetivo del experimento ALPS II y, por tanto, la razón del problema de clasificación abordado en este trabajo es necesario entender el contexto físico que motiva la búsqueda de axiones y su importancia en la física moderna. La búsqueda de estas partículas no surge únicamente del deseo de identificar la materia oscura, sino de resolver el llamado problema CP fuerte, una inconsistencia entre lo que la teoría permite y lo que la naturaleza muestra.
+En los siguientes subapartados se introducen los conceptos físicos mínimos necesarios para entender este problema, la solución que propone la existencia del axión y los fundamentos de los modelos de aprendizaje automático que se van a estudiar. El descubrimiento de esta partícula nos acercaría a completar el modelo estándar.
+
+\subsection{Simetrías en física de partículas}
+\label{sec:simetrías-en-fisica-de-particulas}
+
+En física, una simetría es una transformación que deja las leyes de la naturaleza invariantes. Las tres simetrías discretas universales son:
+\begin{itemize}
+	\item \textbf{C (conjugación de carga)}: transforma una partícula en su antipartícula. Una ley física es simétrica con respecto a C si se comporta igual para materia y antimateria. Esto implica cambiar sus propiedades cuánticas, por ejemplo, una carga positiva por una negativa.
+	\item \textbf{P (paridad)}: equivale a reflejar el sistema en un espejo. Es decir, una ley física simétrica con respecto a P, es igual en su imagen especular.
+	\item \textbf{T (inversión temporal)}: invierte la dirección del tiempo. En este caso una ley simétrica bajo T funciona igual hacia adelante y hacia atrás en el tiempo.
+\end{itemize}
+
+%\begin{SCfigure}
+% \centering \includegraphics[width=0.5\textwidth]{Figure1}
+% \caption{Departamento de Electrónica en el lateral.}
+%\end{SCfigure}
+
+\subsection{Fuerza fuerte y la Cromodinámica cuántica (QCD)}
+\label{sec:fuerza-fuerte-cromodinamica-cuantica}
+
+En la naturaleza existen cuatro fuerzas fundamentales: \textbf{la fuerza electromagnética, la gravedad, la fuerza débil y la fuerza fuerte}. La fuerza fuerte es la interacción responsable de mantener unidos los \textbf{quarks}\footnote{Son las partículas elementales que forman la materia nuclear.} dentro de los nucleones (protones y neutrones), y estos a su vez dentro del núcleo atómico.
+Para entender cómo funciona, tomemos como analogía el electromagnetismo. En él, las partículas tienen carga eléctrica positiva o negativa: cargas opuestas se atraen y cargas iguales se repelen. La Cromodinámica Cuántica (QCD) funciona de forma análoga, pero con una propiedad fundamental: los quarks y los gluones poseen una propiedad llamada carga de color, que puede tomar tres valores posibles
+
+\begin{itemize}
+	\item \textbf{Rojo o antirojo}
+	\item \textbf{Azul o antiazul}
+	\item \textbf{Verde o antiverde}
+\end{itemize}
+
+Estos colores son puramente simbólicos y representan tres estados internos de las partículas, sin relación alguna con el color visible. Los anticolores son los estados opuestos, análogos a las cargas negativas del electromagnetismo. El principio que rige la fuerza fuerte consiste en que las partículas deben ser siempre neutras en color (lo que en QCD se denomina estado "blanco"). Este equilibrio se puede alcanzar de dos formas: combinando los tres colores básicos (rojo + azul + verde = blanco, como ocurre en los protones y neutrones), o combinando un color con su anticolor (par quark-antiquark, como ocurre en los mesones).
+
+Los \textbf{gluones} son las partículas portadoras de la fuerza fuerte, equivalentes a los fotones en el electromagnetismo. Cuando un quark emite o absorbe un gluón, este cambia su carga de color. Dado que en un nucleón ningún par de quarks puede tener simultáneamente la misma carga de color (lo que violaría el principio de exclusión de Pauli\footnote{establece que dos fermiones no pueden estar en el mismo estado cuántico}) los quarks intercambian gluones constantemente para mantener el equilibrio cromático global. Esta dinámica continua de intercambio de gluones que transportan carga de color de un quark a otro es, precisamente, la interacción fuerte.
+Una diferencia fundamental respecto al electromagnetismo es que los gluones, a diferencia de los fotones, también llevan carga de color y por tanto también interaccionan entre sí. Esto hace que la QCD sea mucho más compleja que el electromagnetismo, y es la raíz de una de las propiedades más importantes de la fuerza fuerte: \textbf{el confinamiento}.
+En la Figura \ref{fig:neutron-structure} se representa esta propiedad, los quarks con sus cargas de color, son atraídos por la fuerza fuerte.
+
+El confinamiento establece que cuanto más se intenta separar dos quarks, mayor es la fuerza de atracción entre ellos, exactamente lo contrario a lo que ocurre con la gravedad o el electromagnetismo, donde la fuerza disminuye con la distancia. Si se aplicase suficiente energía para "romper" esa unión, no se obtiene un quark libre, sino que la energía suministrada es suficiente para crear un nuevo par quark-antiquark a partir del vacío cuántico (en virtud de la equivalencia $E = m \cdot c^2$ ).El resultado es que siempre aparecen nuevas partículas en lugar de quarks aislados. En consecuencia, nunca es posible observar un quark de forma aislada. Este fenómeno se denomina \textbf{confinamiento de color}.
+
+
+\begin{figure}[h] %h indica que ponga la figura aqui si es posible
+	\centering
+	\includegraphics[width=0.45\textwidth]{Neutron-structure}
+	\caption{Estructura interna de un neutrón, formado por dos quarks down y uno up.}
+	\label{fig:neutron-structure}
+\end{figure}
+
+\subsection{El problema CP fuerte}
+\label{sec:porblema-CP}
+
+En los apartados anteriores se ha visto que la fuerza fuerte es la responsable de mantener unidos los quarks dentro de los nucleones, y que las simetrías son un pilar fundamental en la física de partículas. Como señala \textcite{freire2025}: \textit{"las simetrías se sitúan como elementos indispensables en la física, tal y como si se tratase de principios guía que proporcionan estructura, orden y belleza a las teorías"}.
+Con este razonamiento, la fuerza fuerte también respetaría las simetrías fundamentales. Y, de hecho, en todos los experimentos realizados hasta la fecha, se ha observado que la fuerza fuerte siempre conserva la simetría CP: si se aplican simultáneamente las transformaciones de conjugación de carga (C) y paridad (P) a los quarks y gluones, las leyes que gobiernan la interacción fuerte permanecen invariantes.
+
+
+Sin embargo, cuando se examina la ecuación \ref{eq:eq1} del \textbf{Lagrangiano de la QCD} (expresión matemática que describe formalmente todas las interacciones de la fuerza fuerte) se encuentra que: la teoría permite la violación de la simetría CP. 
+Esta posibilidad aparece a través de un término adicional controlado por un parámetro libre llamado ángulo $\theta$, también denominado ángulo de \textit{t'Hooft}. Desde el punto de vista teórico, $\theta$ puede tomar cualquier valor 
+entre 0 y $2 \pi$ sin que ello contradiga la consistencia matemática de la QCD.
+Si $\theta$ tomase un valor apreciable, la simetría CP se rompería en la fuerza fuerte, y provocaría consecuencias observables en los experimentos: el neutrón presentaría un \textbf{momento dipolar eléctrico} (nEDM), es decir, 
+una distribución asimétrica de cargas eléctricas en su interior. Las mediciones experimentales del nEDM son extraordinariamente precisas e imponen el límite: $|\theta| < 10^{-10}$
+
+\begin{equation}
+	\label{eq:eq1}
+	\mathcal{L} = -\frac{1}{4} F_{\mu\nu}^a F^{a\,\mu\nu} - \frac{n_f g^2 \theta}{32\pi^2} F_{\mu\nu}^a \tilde{F}^{a\,\mu\nu} + \bar{\psi} \left( i\gamma^\mu D_\mu - m e^{i\theta'\gamma_5} \right) \psi
+\end{equation}
+
+No se verá el desarrollo matemático completo, pero sí conviene identificar algunos de los términos principales:
+
+\begin{itemize}
+	\item $F_{\mu\nu}^a$: tensor de campo gluónico (el índice $a$ recorre los ocho estados de color posibles de los gluones); describe la propagación de los gluones y su interacción entre sí.
+	\item $g$: constante de acoplamiento de la fuerza fuerte.
+	\item $n_f$: número de sabores de quark.
+	\item $\tilde{F}_{\mu\nu}^a$: dual del tensor de campo gluónico. Junto con $g$, $n_f$ y $\theta$ forma el término que introduce la posible violación de CP, y que se anula si $\theta=0$.
+	\item $\psi$: campo del quark.
+	\item $\gamma^\mu$: matrices de Dirac.
+	\item $D_\mu$: derivada covariante, que incluye la interacción de los quarks con los gluones.
+	\item $m$: masa del quark.
+\end{itemize}
+
+Esto significa que, aunque la teoría permite que $\theta$ tome cualquier valor de orden 1, en la naturaleza siempre se observa un valor cercano a cero, al menos diez mil millones de veces más pequeño de lo que cabría esperar. 
+Que un parámetro libre de la teoría tome un valor tan extremo y tan preciso sin ninguna razón aparente es lo que se conoce como un problema de ajuste fino: la teoría funciona, pero solo si sus parámetros están ajustados a unos valores concretos.
+
+
+Esta inconsistencia entre lo que la teoría permite y lo que la naturaleza muestra es el problema CP fuerte. No es un error de la QCD (la teoría sigue siendo correcta y muy precisa) sino una pregunta sin respuesta: 
+¿por qué $\theta$ es tan pequeño? ¿Existe algo que lo fuerce a cancelarse, o es una coincidencia del universo? La respuesta a estas preguntas conduce directamente a la propuesta de Peccei-Quinn, que se describe en el siguiente apartado.
+
+
+\subsection{La solución: Teoría de Peccei-Quinn}
+\label{sec:solucion-peccei-quinn}
+
+En 1977, los físicos Roberto Peccei y Helen Quinn propusieron una solución al problema CP fuerte, la teoría de Peccei-Quinn. Como se ha visto anteriormente, el parámetro $\theta$ del Lagrangiano de la QCD toma experimentalmente 
+valores cercanos a cero. Sin embargo, Peccei y Quinn proponen que $\theta$ no es una constante fija, sino un campo dinámico que evoluciona hasta anularse. De este modo, el valor $\theta$ cercano a 0 deja de ser una coincidencia 
+inexplicable para convertirse en el resultado natural de la dinámica del sistema.
+Este campo genera inevitablemente una partícula nueva asociada, \textbf{el axión}, predicho de forma independiente por Steven Weinberg y Frank Wilczek en 1978.
+
+
+El axión presenta un conjunto de propiedades que encajan perfectamente con el papel que se le asigna en la teoría. En primer lugar, su masa es extremadamente pequeña (del orden de \textit{$\mu$eV} a \textit{meV} dependiendo de la escala) 
+lo que lo hace prácticamente invisible para los detectores convencionales de alta energía. En segundo lugar, interacciona débilmente con la materia. Por último, el axión presenta un acoplamiento a fotones, es decir, en presencia de un 
+campo magnético externo, un axión puede convertirse en un fotón y viceversa a través del denominado \textit{efecto Primakoff}\footnote{\href{https://en.wikipedia.org/wiki/Primakoff_effect}{Primakoff effect, Wikipedia}}.
+Esta conversión axión-fotón es precisamente el mecanismo que explora el experimento ALPS II para buscar estas partículas en el laboratorio. En la Figura \ref{fig:diagrama-feynman} se puede observar el diagrama de esta última propiedad.
+
+\begin{figure}[h] %h indica que ponga la figura aqui si es posible
+	\centering
+	\includegraphics[width=0.45\textwidth]{Diagrama-feynman}
+	\caption{Diagrama de Feynman. Describe la conexión fotón-fotón a por medio de un axión. 
+	\href{https://cds.cern.ch/record/2777894/plots}{Web oficial CERN}}
+	\label{fig:diagrama-feynman}
+\end{figure}
+
+\subsection{El experimento ALPS II}
+\label{sec:experimento-alps}
+
+Con el contexto anterior podemos entender la importancia que tiene el descubrimiento de los axiones. Actualmente existen diferentes tipos de experimentos para su búsqueda, como telescopios, detectores subterráneos, grandes aceleradores de partículas o del tipo \textit{luz a través de una pared}. 
+El experimento ALPS (Any Light Particle Search) tiene lugar en el centro de instalación DESY, situado en Hamburgo, Alemania.
+En una primera fase, un láser emite fotones de 1064 nm que es amplificado por unos espejos. A continuación, el haz de luz atraviesa un campo magnético formado por 12 imanes superconductores. Como se ha señalado en la Sección \ref{sec:solucion-peccei-quinn}, por el efecto Primarkoff, los fotones se convertirían en axiones, con una probabilidad de $1:10^{14}$.
+En la siguiente fase, la luz choca con el muro, sin embargo, aquellos fotones que se hayan convertido en axiones lo atravesarían.
+Del otro lado del muro, otros doce imanes superconductores, producen un campo mágnetico con la misma intensidad que en la fase inicial. De tal manera que, los axiones que atraviesen el muro, volverían a convertirse en fotones. las conversiones son extremadamente  raras, es por ello que se utiliza un sensor detector extremadamente sensible. 
+El Transition Edge Sensor (TES) es un detector superconductivo que trabaja en el borde entre superconductor y conductor normal. Su alta sensibilidad le permite detectar fotones individuales. Cuando un fotón llega al TES, este genera un cambio de temperatura, lo que provoca un cambio en la resistencia y en consecuencia de corriente. El sistema mide el cambio de corriente como una señal de voltaje \textit{Vout(t)}.
+
+\begin{figure}[h] %h indica que ponga la figura aqui si es posible
+	\centering
+	\includegraphics[width=0.45\textwidth]{diagrama-TES-SQUID}
+	\caption{Diagrama del sistema de detección utilizado. 
+		\href{https://en.wikipedia.org/wiki/File:TES_schematic.pdf}{Imagen obtenida de wikipedia}}
+	\label{fig:diagrama-tes-squid}
+\end{figure}
+
+Por tanto, si durante el proceso de detección se observa un fotón, la única explicación posible, es que hubo una conversión fotón-axión-foton que permitió al fotón atravesar el muro.
+Sin embargo, durante las primeras pruebas del experimento, se ha observado que el detector también captura ruido intrínseco (provocado por el propio sensor) y externo (ajenos al sensor).
+En la siguiente sección se verá porque este último presenta un problema serio para los modelos de aprendizaje automático.
+
+\begin{figure}[h] %h indica que ponga la figura aqui si es posible
+	\centering
+	\includegraphics[width=0.70\textwidth]{diagrama-experimento-ALPS}
+	\caption{Diagrama experimento ALPS. 
+	\href{https://darkmatter-alps.desy.de/alps-ii-eng.html}{Web oficial DESY}}
+	\label{fig:diagrama-experimento-ALPS}
+\end{figure}
+
+\section{Motivación}
+\label{sec:motivacion}
+
+En trabajos previos \cite{manenti2024} se ha aplicado aprendizaje automático para distinguir el ruido intrínseco de los fotones del láser. No obstante, también está presente el ruido externo, provocado por ruido térmico, rayos cósmicos, partículas externas al sistema y fotones de cuerpo negro. 
+Este último presenta un verdadero problema, ya que su longitud de onda es casi idéntica a las de los fotones. En el artículo \textcite{rivasto2026}, \textit{''Binary Classification of Signal and Background Triggers of a Transition Edge Sensor Using
+Convolutional Neural Networks''}, los autores tratan de separar los fotones del ruido (intrínseco + externo).
+Los resultados obtenidos han sido peores que el método clásico de clasificación por cortes; sin embargo, se han propuesto determinadas líneas de trabajo que se explotarán en este trabajo.
+
+Aunque la optimización del sistema de detección es de vital importancia para el filtrado del ruido, el diseño de una herramienta capaz de identificar el ruido y separarlo de los fotones es de suma importancia para la mejora de la sensibilidad del experimento. Por ello, se explorarán diferentes
+modelos de aprendizaje automático para que se encarguen de esta tarea. Además, es necesario que estos modelos aprendan a reconocer los patrones que tiene cada tipo de pulso forma autónoma, sin intervención humana.  Por tanto,  el diseño se enfocará en modelos \textbf{no supervisados}; entre ellos, los 
+más adecuados para la detección de patrones en series temporales son los autoencoders, el modelo de mezcla gaussiana (Gaussian Mixture Model), el bosque de aislamiento (Isolation Forest) y las redes neuronales convolucionales.
+Finalmente se analizarán los datos obtenidos y se compararán con la sensibiliadd del modelo de referencia, la CNN de clasificación binaria.
+
+%%% Local Variables:
+%%% TeX-master: "../book"
+%%% End:

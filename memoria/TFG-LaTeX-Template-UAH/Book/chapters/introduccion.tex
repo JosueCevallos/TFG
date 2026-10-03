@@ -1,0 +1,40 @@
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% 
+% 
+% Generic template for TFC/TFM/TFG/Tesis
+% 
+% By:
+%  + Javier Macías-Guarasa.
+%    Departamento de Electrónica
+%    Universidad de Alcalá
+%  + Roberto Barra-Chicote.
+%    Departamento de Ingeniería Electrónica
+%    Universidad Politécnica de Madrid
+% 
+% By: + Javier Macías-Guarasa. Departamento de Electrónica Universidad de Alcalá + Roberto Barra-Chicote. Departamento de Ingeniería Electrónica Universidad Politécnica de Madrid
+% 
+% Based on original sources by Roberto Barra, Manuel Ocaña, Jesús Nuevo, Pedro Revenga, Fernando Herránz and Noelia Hernández. Thanks a lot to all of them, and to the many anonymous contributors found (thanks to google) that provided help in setting all this up.
+% 
+% See also the additionalContributors.txt file to check the name of additional contributors to this work.
+% 
+% If you think you can add pieces of relevant/useful examples, improvements, please contact us at (macias@depeca.uah.es)
+% 
+% You can freely use this template and please contribute with comments or suggestions!!!
+% 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% 
+
+\chapter{Introducción}
+\label{cha:introduccion}
+
+El problema CP en la fuerza fuerte es uno de los enigmas más importantes en la física. La teoría de Peccei-Quinn propone una solución a este problema, la existencia de una partícula teórica, aún no descubierta, el Axión.
+Además de solucionar la violación de la simetría CP en la fuerza fuerte, sus propiedades cuánticas lo clasifican como una partícula candidata a materia oscura.
+En el experimento Any Light Particles Search II (ALPS II) se trata demostrar la existencia de axiones o partículas similares al axión. ALPS II es un experimento de tipo “Light through a wall” que consiste en emitir un potente haz de luz laser de 1064 nm a través de una cavidad resonante de 1064 m de longitud. En esta cavidad se distribuyen 12 imanes superconductores que aplican un campo magnético fuerte. Según la teoría Primakoff effect, el fotón se transformaría en un axión. Al llegar a la pared opaca, la luz queda bloqueada, pero los axiones atravesarían la pared ya que la materia oscura no tiene interacción con la materia. Del otro lado de la pared se vuelve a aplicar un campo magnético que convertiría el axión de vuelta en fotón. Sin embargo, estas transformaciones son muy extrañas del orden de 1: 1014 . Por este motivo se necesita un detector extremadamente sensible. 
+El Transition Edge Sensor (TES) es un detector superconductivo que trabaja en el borde entre superconductor y conductor normal. Su alta sensibilidad le permite detectar fotones individuales. Cuando un fotón llega al TES, este genera un cambio de temperatura, lo que provoca un cambio en la resistencia y en consecuencia de la corriente. El sistema mide el cambio de corriente como una señal de voltaje \textit{Vout(t)}. En el artículo “Binary Classification of Light and Dark Time Traces of a Transition Edge Sensor Using Convolutional Neural Networks” \cite{rivasto2026} se ha intentado mejorar la significancia estadística del TES separando mediante clasificación binaria usando una CNN, los fotones emitidos por el láser (Light Pulses) del fondo (Dark Pulses). El problema encontrado fue que, existe un grupo de partículas, fotones de radiación de cuerpo negro, cercanos a 1064 nm, que tienen una energía muy parecida a la que contiene un fotón generado por el láser. 
+Esto genera confusión en el entrenamiento de la CNN y en consecuencia el rendimiento es peor que usando el método tradicional de análisis basado en cortes. 
+Con este contexto, en este Trabajo de Fin de Grado se pretende distinguir del conjunto de datos, estos fotones de radiación de cuerpo negro del resto de pulsos de luz. Para ello se han entrenado y evaluado 4 modelo diferentes: CNN de regresión, autoencoders, Modelo Mixto Gausiano (GMM) e Isolation Forest.
+
+
+%%% Local Variables:
+%%% TeX-master: "../book"
+%%% End:
+
+

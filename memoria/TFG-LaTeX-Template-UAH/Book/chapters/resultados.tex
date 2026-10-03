@@ -1,0 +1,272 @@
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%
+% Generic template for TFC/TFM/TFG/Tesis
+%
+% $Id: resultados.tex,v 1.7 2016/03/31 10:44:23 macias Exp $
+%
+% By:
+%  + Javier Macías-Guarasa.
+%    Departamento de Electrónica
+%    Universidad de Alcalá
+%  + Roberto Barra-Chicote.
+%    Departamento de Ingeniería Electrónica
+%    Universidad Politécnica de Madrid
+%
+% Based on original sources by Roberto Barra, Manuel Ocaña, Jesús Nuevo, Pedro Revenga, Fernando Herránz and Noelia Hernández. Thanks a lot to all of them, and to the many anonymous contributors found (thanks to google) that provided help in setting all this up.
+%
+% See also the additionalContributors.txt file to check the name of additional contributors to this work.
+%
+% If you think you can add pieces of relevant/useful examples, improvements, please contact us at (macias@depeca.uah.es)
+%
+% You can freely use this template and please contribute with comments or suggestions!!!
+%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\chapter{Resultados}
+\label{cha:resultados}
+
+
+\section{Introducción}
+\label{sec:introduccion-resultados}
+
+En este capítulo se presentan los resultados de aplicar la metodología descrita en el Capítulo \ref{cha:metodologia} sobre la ventana de muestras definitiva $[1200, 2400)$ (Sección \ref{sec:preprocesado}). Primero se retoma brevemente el estudio exploratorio de los datos (Sección \ref{sec:estudio-exploratorio-datos}). Después se presentan, modelo a modelo, los resultados de los cinco modelos entrenados, en el mismo orden en que se describieron en la Sección \ref{sec:modelos-empleados} (Sección \ref{sec:resultados-por-modelo}). A continuación se comparan los cinco modelos de forma conjunta (Sección \ref{sec:comparacion-global}) y se discuten los hallazgos más relevantes (Sección \ref{sec:discusion-resultados}). El capítulo cierra con un resumen de las conclusiones (Sección \ref{sec:conclusiones-resultados}), que se retomarán con más detalle en el Capítulo \ref{cha:concl-y-line}.
+
+
+\section{Estudio exploratorio de los datos}
+\label{sec:estudio-exploratorio-datos}
+
+Antes de entrenar ningún modelo conviene ver cómo se distribuyen las trazas LIGHT y DARK en un espacio reducido. La Figura \ref{fig:pca-trazas-crudas} muestra la proyección PCA de las trazas crudas sobre sus dos primeras componentes principales. Esta proyección se calcula sobre una franja amplia y fija de cada traza ($[1000, 5000)$), por lo que no depende de la ventana de entrenamiento finalmente elegida.
+
+\begin{figure}[h]
+	\centering
+	\includegraphics[width=0.7\textwidth]{pca_trazas_crudas}
+	\caption{PCA sobre las trazas crudas (LIGHT vs. DARK), previo a cualquier modelo.}
+	\label{fig:pca-trazas-crudas}
+\end{figure}
+
+LIGHT forma un cluster pequeño y compacto, algo que ya se intuía por la homogeneidad de forma observada en el estudio de datasets. DARK, en cambio, se distribuye en un arco mucho más amplio y heterogéneo, y una parte de esa nube cae directamente encima del cluster LIGHT. Este solapamiento parcial es la primera pista de algo que se repite a lo largo de todo el capítulo: hay un subconjunto de pulsos DARK cuya forma global es difícil de distinguir de la de un pulso LIGHT, mientras que el resto de DARK sí es claramente diferente. Esto ya deja ver que una proyección lineal simple no va a bastar para separar ambas clases, y justifica recurrir a modelos más sofisticados.
+
+
+\section{Resultados por modelo}
+\label{sec:resultados-por-modelo}
+
+A continuación se presentan los resultados de cada uno de los cinco modelos descritos en la Sección \ref{sec:modelos-empleados}, en el mismo orden. Todas las cifras corresponden a la ejecución definitiva del \textit{pipeline} sobre la ventana $[1200, 2400)$.
+
+\subsection{CNN de clasificación binaria (modelo de referencia)}
+\label{sec:resultados-cnn-binaria}
+
+La Figura \ref{fig:cnn-binaria-accuracy} muestra la evolución de la \textit{accuracy} de entrenamiento y validación a lo largo de las 20 épocas. Ambas curvas convergen juntas hacia valores en torno a 0.97-0.98 sin separarse en ningún momento, así que no hay indicios de sobreajuste.
+
+\begin{figure}[h]
+	\centering
+	\includegraphics[width=0.6\textwidth]{cnn_binaria_curva_accuracy}
+	\caption{Curva de \textit{accuracy} (entrenamiento vs. validación) — CNN binaria.}
+	\label{fig:cnn-binaria-accuracy}
+\end{figure}
+
+En la matriz de confusión sobre el conjunto de test (Figura \ref{fig:cnn-binaria-matriz-confusion}) se obtiene un \textit{recall} del 97.6\,\% para la clase DARK (7680 aciertos frente a 192 fallos) y del 96.9\,\% para LIGHT (3607 aciertos frente a 115 fallos). La \textit{accuracy} global es del 97.4\,\%.
+
+\begin{figure}[h]
+	\centering
+	\includegraphics[width=0.55\textwidth]{cnn_binaria_matriz_confusion}
+	\caption{Matriz de confusión — CNN binaria.}
+	\label{fig:cnn-binaria-matriz-confusion}
+\end{figure}
+
+La curva ROC (Figura \ref{fig:cnn-binaria-roc}) da un AUC de 0.994, el más alto de los cinco modelos evaluados en este trabajo.
+
+\begin{figure}[h]
+	\centering
+	\includegraphics[width=0.6\textwidth]{cnn_binaria_roc}
+	\caption{Curva ROC — CNN binaria.}
+	\label{fig:cnn-binaria-roc}
+\end{figure}
+
+A lo largo de las distintas ejecuciones realizadas con esta ventana, o con ventanas muy próximas, el AUC de este modelo se ha movido siempre entre 0.992 y 0.994, y la \textit{accuracy} entre el 94.2\,\% y el 97.4\,\%. Esta pequeña variación se debe a que los pesos de la red no se inicializan con una semilla fija, no a diferencias reales entre ventanas (se comenta más en la Sección \ref{sec:discusion-resultados}). Tomando los valores de la ejecución definitiva, AUC=0.994 y \textit{accuracy}$\approx$97.4\,\%, como cifra de referencia, la CNN binaria es con diferencia el modelo más fuerte y estable de los cinco. Tiene sentido: es el único entrenado de forma supervisada, con acceso a ambas clases etiquetadas.
+
+\subsection{Autoencoders}
+\label{sec:resultados-autoencoders}
+
+Las tres variantes de autoencoder convergen de forma estable y sin indicios de sobreajuste, como se ve en la Figura \ref{fig:autoencoders-curvas-perdida}.
+
+\begin{figure}[h]
+	\centering
+	\includegraphics[width=\textwidth]{autoencoders_curvas_perdida}
+	\caption{Curvas de pérdida (entrenamiento vs. validación) — las 3 variantes de autoencoder.}
+	\label{fig:autoencoders-curvas-perdida}
+\end{figure}
+
+La distribución del error de reconstrucción (Figura \ref{fig:autoencoders-error-reconstruccion}) sigue un patrón que se repite en las tres variantes. En Solo Light, el error sobre LIGHT queda muy concentrado cerca de 0, mientras que el de DARK tiene una cola larga hacia valores altos; la separación entre clases depende sobre todo de esa cola, más que de un desplazamiento general de toda la distribución. En Solo Dark y en Light+Dark el solapamiento entre clases es mayor.
+
+\begin{figure}[h]
+	\centering
+	\includegraphics[width=\textwidth]{autoencoders_error_reconstruccion}
+	\caption{Distribución del error de reconstrucción por variante.}
+	\label{fig:autoencoders-error-reconstruccion}
+\end{figure}
+
+Si se convierte ese error en una curva ROC para cada variante (Figura \ref{fig:autoencoders-roc-comparacion}), Solo Light obtiene el mejor AUC, 0.917, seguida de Solo Dark con 0.708 y, ya bastante más atrás, Light+Dark con 0.662.
+
+\begin{figure}[h]
+	\centering
+	\includegraphics[width=0.6\textwidth]{autoencoders_roc_comparacion_variantes}
+	\caption{Comparación de las curvas ROC de las 3 variantes de autoencoder.}
+	\label{fig:autoencoders-roc-comparacion}
+\end{figure}
+
+El espacio latente de la variante Solo Light (Figura \ref{fig:autoencoders-scatter-latente}) ayuda a entender por qué: LIGHT se concentra en un cluster compacto, mientras que DARK se dispersa en una región mucho más amplia, con una parte solapada sobre ese cluster. Es el mismo patrón de subconjunto difícil que ya había aparecido en el estudio exploratorio (Sección \ref{sec:estudio-exploratorio-datos}).
+
+\begin{figure}[h]
+	\centering
+	\includegraphics[width=0.6\textwidth]{scatter_latente_light}
+	\caption{Espacio latente del autoencoder Solo Light.}
+	\label{fig:autoencoders-scatter-latente}
+\end{figure}
+
+De las tres variantes, Solo Light es sistemáticamente la mejor en todas las ejecuciones realizadas, con un AUC que se mueve entre 0.904 y 0.958, y es la que se usa para representar a este modelo en la comparación global (Sección \ref{sec:comparacion-global}). Solo Dark queda siempre en segundo lugar, y Light+Dark es la más débil de las tres en todos los casos: entrenar con la mezcla de ambas clases parece diluir la capacidad del modelo para aislar el comportamiento de cualquiera de ellas por separado. Se toma AUC$\approx$0.92 (0.917 en esta ejecución) como cifra de referencia para el autoencoder Solo Light, con la salvedad de que hay una variabilidad de $\pm$0.02-0.03 entre ejecuciones por la falta de semilla fija en los pesos.
+
+\subsection{Modelo de Mezcla Gaussiana (GMM)}
+\label{sec:resultados-gmm}
+
+El criterio BIC selecciona 5 componentes gaussianas para la variante Solo Light (Figura \ref{fig:gmm-bic-light}). Para Solo Dark selecciona 8, y para Light+Dark, 10 (no se incluyen esas dos gráficas por brevedad).
+
+\begin{figure}[h]
+	\centering
+	\includegraphics[width=0.6\textwidth]{gmm_bic_light}
+	\caption{Selección del número de gaussianas por BIC — GMM Solo Light.}
+	\label{fig:gmm-bic-light}
+\end{figure}
+
+La Figura \ref{fig:gmm-distribucion-score} muestra la distribución del score de anomalía, la log-verosimilitud negada, para cada variante. En Solo Light, LIGHT se concentra en valores de score bajos y DARK presenta una cola hacia valores altos. En Solo Dark el patrón se invierte, con DARK en valores bajos y LIGHT en valores altos, algo esperable teniendo en cuenta que en esa variante DARK es la clase de entrenamiento.
+
+\begin{figure}[h]
+	\centering
+	\includegraphics[width=\textwidth]{gmm_distribucion_score}
+	\caption{Distribución del score de anomalía por variante — GMM.}
+	\label{fig:gmm-distribucion-score}
+\end{figure}
+
+Al comparar las tres variantes en curva ROC (Figura \ref{fig:gmm-roc-comparacion}) se obtiene un AUC de 0.982 para Solo Light, 0.788 para Solo Dark y 0.824 para Light+Dark.
+
+\begin{figure}[h]
+	\centering
+	\includegraphics[width=0.6\textwidth]{gmm_roc_comparacion_variantes}
+	\caption{Comparación de las curvas ROC de las 3 variantes de GMM.}
+	\label{fig:gmm-roc-comparacion}
+\end{figure}
+
+De los cuatro modelos de una sola clase, GMM Solo Light es el que discrimina mejor y de forma más estable: su AUC apenas cambia entre ejecuciones con la misma ventana, algo que no ocurre con los modelos basados en redes neuronales. Es además el segundo mejor modelo de los cinco evaluados en este capítulo, a solo 0.012 del modelo de referencia supervisado (Sección \ref{sec:resultados-cnn-binaria}), y eso sin ver nunca un pulso DARK durante el entrenamiento y usando solo 3 características extraídas a mano en vez de la traza completa. Se vuelve sobre este resultado en la Discusión (Sección \ref{sec:discusion-resultados}).
+
+\subsection{Isolation Forest}
+\label{sec:resultados-isolation-forest}
+
+La distribución del score de anomalía (Figura \ref{fig:isolation-forest-distribucion}) es claramente bimodal para DARK: una parte se solapa con LIGHT, los casos difíciles ya identificados en la Sección \ref{sec:estudio-exploratorio-datos}, y otra parte forma un segundo pico bien diferenciado y claramente anómalo.
+
+\begin{figure}[h]
+	\centering
+	\includegraphics[width=0.7\textwidth]{isolation_forest_distribucion_score}
+	\caption{Distribución del score de anomalía — Isolation Forest.}
+	\label{fig:isolation-forest-distribucion}
+\end{figure}
+
+La proyección PCA del espacio de trazas, coloreada por clase y por score de anomalía (Figura \ref{fig:isolation-forest-pca}), confirma esa lectura: los pulsos DARK que caen sobre el cluster LIGHT reciben scores bajos, en verde, y los que quedan alejados reciben scores altos, en rojo, claramente anómalos.
+
+\begin{figure}[h]
+	\centering
+	\includegraphics[width=\textwidth]{isolation_forest_pca_espacio_trazas}
+	\caption{PCA del espacio de trazas: por clase y por score de anomalía — Isolation Forest.}
+	\label{fig:isolation-forest-pca}
+\end{figure}
+
+Isolation Forest obtiene un AUC de 0.948, que además es perfectamente reproducible entre ejecuciones porque el modelo es determinista (semilla fija). Es un resultado sólido, aunque por debajo del GMM, lo cual resulta razonable: este modelo trabaja directamente sobre la traza normalizada completa, sin el conjunto reducido de características diseñadas a propósito para capturar la forma del pulso que sí usa el GMM.
+
+\subsection{CNN de regresión}
+\label{sec:resultados-cnn-regresion}
+
+La curva de aprendizaje (Figura \ref{fig:cnn-regresion-aprendizaje}) es más ruidosa que la de los demás modelos, con un repunte puntual del error de validación hacia la mitad del entrenamiento, algo achacable de nuevo a la falta de semilla fija en los pesos. Aun así, el resultado final es el mejor obtenido para este modelo en todas las ejecuciones realizadas.
+
+\begin{figure}[h]
+	\centering
+	\includegraphics[width=0.6\textwidth]{cnn_regresion_curva_aprendizaje}
+	\caption{Curva de aprendizaje — CNN de regresión.}
+	\label{fig:cnn-regresion-aprendizaje}
+\end{figure}
+
+La distribución del error de predicción de $V_{min}$ (Figura \ref{fig:cnn-regresion-error}) es la separación más limpia entre clases de todos los modelos evaluados: DARK forma un cuerpo de distribución propio, bien diferenciado, con muy poco solapamiento con LIGHT.
+
+\begin{figure}[h]
+	\centering
+	\includegraphics[width=0.7\textwidth]{cnn_regresion_distribucion_error}
+	\caption{Distribución del error de predicción — CNN de regresión.}
+	\label{fig:cnn-regresion-error}
+\end{figure}
+
+El diagrama de dispersión de $V_{min}$ real frente a predicho (Figura \ref{fig:cnn-regresion-scatter}) explica ese comportamiento. LIGHT sigue de cerca la diagonal de predicción perfecta, y DARK se reparte en dos grupos: una fracción que acompaña a LIGHT sobre la diagonal, los casos difíciles de siempre, y una fracción grande que se agrupa en una banda horizontal de predicción prácticamente constante, sin relación con el valor real. Es decir, ante un pulso poco familiar el modelo no extrapola, y ese fallo sistemático es justo lo que permite detectarlo como anómalo.
+
+\begin{figure}[h]
+	\centering
+	\includegraphics[width=0.6\textwidth]{cnn_regresion_scatter_real_vs_predicho}
+	\caption{$V_{min}$ real vs. predicho — CNN de regresión.}
+	\label{fig:cnn-regresion-scatter}
+\end{figure}
+
+El AUC obtenido es 0.972, el mejor de las tres ejecuciones realizadas con esta CNN (0.944, 0.970 y 0.972), y prácticamente empatado con el del GMM. Es un resultado destacable si se tiene en cuenta que, a diferencia del GMM, este modelo trabaja sobre la traza completa sin extracción manual de características, y que además resuelve la tarea de forma indirecta, prediciendo una magnitud continua en lugar de clasificar directamente.
+
+
+\section{Comparación global de modelos}
+\label{sec:comparacion-global}
+
+La Figura \ref{fig:roc-comparacion-completa} superpone la curva ROC de los cinco modelos. Para el GMM y para el autoencoder se representa solo la mejor de sus tres variantes, que en ambos casos es Solo Light.
+
+\begin{figure}[h]
+	\centering
+	\includegraphics[width=0.75\textwidth]{roc_comparacion_completa}
+	\caption{Curvas ROC — comparación de los 5 modelos evaluados.}
+	\label{fig:roc-comparacion-completa}
+\end{figure}
+
+Además del AUC, la Tabla \ref{tab:comparacion-final} recoge la tasa de falsos positivos que exige cada modelo, es decir, la proporción de pulsos LIGHT rechazados por error, para alcanzar dos puntos de operación fijos: detectar el 95\,\% o el 99\,\% de los pulsos DARK.
+
+\begin{table}[h]
+	\centering
+	\caption{Comparación final de los 5 modelos (ventana $[1200, 2400)$).}
+	\label{tab:comparacion-final}
+	\begin{tabular}{lccc}
+		\toprule
+		Modelo & AUC & FPR@TPR=0.95 & FPR@TPR=0.99 \\
+		\midrule
+		CNN Binaria (referencia)      & 0.994 & 0.015 & 0.076 \\
+		GMM — Solo Light              & 0.982 & 0.105 & 0.450 \\
+		CNN Regresión                 & 0.972 & 0.110 & 0.791 \\
+		Isolation Forest              & 0.948 & 0.280 & 0.580 \\
+		Autoencoder — Solo Light      & 0.917 & 0.520 & 0.845 \\
+		\bottomrule
+	\end{tabular}
+\end{table}
+
+Por AUC el orden queda así: CNN Binaria (0.994), GMM Solo Light (0.982), CNN Regresión (0.972), Isolation Forest (0.948) y Autoencoder Solo Light (0.917). Sin embargo, como se ve en la Sección \ref{sec:discusion-resultados}, este orden no se mantiene igual si en vez de mirar el AUC agregado se atiende a los puntos de operación de la Tabla \ref{tab:comparacion-final}.
+
+
+\section{Discusión}
+\label{sec:discusion-resultados}
+
+La CNN binaria de referencia es el mejor modelo en todos los criterios considerados: mejor AUC (0.994) y mejor FPR en los dos puntos de operación (0.015 y 0.076). Es el resultado esperado, ya que es el único modelo que ve ambas clases etiquetadas durante el entrenamiento (Sección \ref{sec:estrategia-experimental}).
+
+El resultado que más interesa de cara a la pregunta de investigación de este TFG es el del GMM Solo Light. Sin ver nunca un pulso DARK durante el entrenamiento, y usando solo 3 características extraídas a mano, alcanza un AUC de 0.982, a apenas 0.012 del modelo supervisado de referencia, y el mejor FPR@TPR=0.99 de todos los modelos de una sola clase (0.450). Es el argumento más sólido que se obtiene en este trabajo a favor de que un detector de anomalías, entrenado sin ejemplos de la clase de ruido, puede acercarse mucho al rendimiento de un clasificador supervisado tradicional.
+
+La CNN de regresión, por su parte, muestra un comportamiento asimétrico entre puntos de operación que se repite en las dos ventanas de muestras probadas, $[1200, 2300)$ y $[1200, 2400)$: es muy competitiva a TPR=0.95 (FPR=0.110, prácticamente empatada con el GMM), pero se degrada notablemente a TPR=0.99 (FPR=0.791, el peor valor de todos los modelos de una clase salvo el autoencoder). Esto sugiere que la CNN de regresión discrimina bien la mayoría de los pulsos DARK, pero le cuesta identificar el último tramo de casos más parecidos a LIGHT. Como el patrón se repite en dos configuraciones de ventana distintas, no parece cosa del azar, sino una característica real de este modelo.
+
+Isolation Forest queda en una posición intermedia. Su comportamiento es más consistente entre los dos puntos de operación (0.280 y 0.580) que el de la CNN de regresión, aunque no destaca especialmente en ninguno de los dos. Fue además el único modelo en el que se pudo confirmar con rigor una mejora al ajustar la ventana de muestras, precisamente por ser determinista y no arrastrar la variabilidad de los modelos basados en redes neuronales: su FPR@TPR=0.95 bajó de 0.335 a 0.280 al pasar de la ventana $[1200, 2300)$ a la definitiva $[1200, 2400)$.
+
+El autoencoder Solo Light es, de los cinco, el modelo más débil en las tres métricas consideradas, aunque queda siempre muy por encima de un clasificador aleatorio. Una posible explicación es que su función de pérdida, el MAE promediado sobre la traza completa, diluye la señal discriminativa del pico del pulso entre las muestras de línea base, que son mayoría en la ventana. Durante este trabajo se probó una variante de la métrica de evaluación que calculaba el error solo en una subventana centrada en el pico de cada traza: mejoraba de forma notable la variante Solo Light, pero empeoraba la variante Solo Dark, así que finalmente no se incorporó a la versión definitiva del modelo. Queda como una posible línea futura (Capítulo \ref{cha:concl-y-line}).
+
+
+\section{Conclusiones}
+\label{sec:conclusiones-resultados}
+
+Los cinco modelos evaluados superan claramente a un clasificador aleatorio. Los cuatro modelos propuestos, entrenados sin ver nunca un ejemplo de la clase de ruido, se mueven en un rango de AUC entre 0.917 y 0.982. El modelo de referencia supervisado, la CNN binaria, obtiene el mejor resultado global, algo esperable dada su ventaja de información. Aun así, el GMM Solo Light se acerca bastante a esa referencia (0.982 frente a 0.994) usando solo tres características extraídas a mano y ningún ejemplo de la clase anómala durante el entrenamiento, lo que constituye el resultado más favorable a la hipótesis planteada en la Introducción de este trabajo. En el Capítulo \ref{cha:concl-y-line} se retoman estos resultados para extraer las conclusiones finales del trabajo y proponer líneas futuras.
+
+
+%%% Local Variables:
+%%% TeX-master: "../book"
+%%% End:
