@@ -117,6 +117,10 @@ Otra sugerencia, un buen modelo es aquel que tenga menos solapamientos de pulsos
 matriz de confusión es buena medida para el clasificador binario, pero para un modelo probabiliastico como el GMM, una manera de 
 medir su performance es calculando la distancia entre campanas.
 
+## DIA 03/10
+
+Subimos una versión piloto
+
 Sugerencia de metod a utilizar: entropía cruzada.
 
 Importante: al proyecto hay que buscarle una consecuencia técnica o científica, o ambas tecnico-cientifico; en esste ultimo caso, 
