@@ -1,0 +1,61 @@
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%
+% Generic template for TFC/TFM/TFG/Tesis
+%
+% By:
+%  + Javier Macías-Guarasa.
+%    Departamento de Electrónica
+%    Universidad de Alcalá
+%  + Roberto Barra-Chicote.
+%    Departamento de Ingeniería Electrónica
+%    Universidad Politécnica de Madrid
+%
+% By: + Javier Macías-Guarasa. Departamento de Electrónica Universidad de Alcalá + Roberto Barra-Chicote. Departamento de Ingeniería Electrónica Universidad Politécnica de Madrid
+%
+% Based on original sources by Roberto Barra, Manuel Ocaña, Jesús Nuevo, Pedro Revenga, Fernando Herránz and Noelia Hernández. Thanks a lot to all of them, and to the many anonymous contributors found (thanks to google) that provided help in setting all this up.
+%
+% See also the additionalContributors.txt file to check the name of additional contributors to this work.
+%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\chapter{Herramientas y recursos}
+\label{cha:herr-y-recurs}
+
+En este apéndice se describen las herramientas software y los recursos empleados durante el desarrollo de este trabajo, tanto para la parte de programación y entrenamiento de los modelos como para la redacción de la memoria.
+
+\section{Entorno de desarrollo}
+\label{sec:entorno-desarrollo}
+
+Todo el trabajo se ha desarrollado sobre \textbf{WSL2} (Windows Subsystem for Linux), con una distribución \textbf{Ubuntu}, lo que permite trabajar en un entorno GNU/Linux completo sin salir de Windows. Como editor único, tanto para el código Python como para la propia memoria en \LaTeX{}, se ha usado \textbf{Visual Studio Code}, con dos extensiones principales:
+
+\begin{itemize}
+	\item La extensión de Python, junto con \textbf{Miniconda} como gestor de entornos. Se creó un entorno conda específico para el proyecto (\texttt{tfg}, Python 3.11, usando exclusivamente el canal \texttt{conda-forge}), en el que se instalaron todas las bibliotecas necesarias para ejecutar el script del TFG.
+	\item La extensión \textbf{LaTeX Workshop}, configurada para compilar la memoria con \texttt{latexmk} directamente desde el editor.
+\end{itemize}
+
+\section{Lenguaje y bibliotecas}
+\label{sec:lenguaje-bibliotecas}
+
+Todo el código del proyecto está escrito en \textbf{Python 3.11}. Las bibliotecas principales empleadas son:
+
+\begin{itemize}
+	\item \textbf{uproot}: lectura de los ficheros de datos en formato \texttt{.root}, el formato estándar de almacenamiento de datos en física de altas energías (desarrollado en el CERN).
+	\item \textbf{NumPy} y \textbf{SciPy}: manipulación numérica de las trazas y cálculo de estadísticos (asimetría, curtosis, etc.) usados como características de los pulsos.
+	\item \textbf{TensorFlow} y \textbf{Keras}: definición y entrenamiento de los modelos basados en redes neuronales (CNN de clasificación binaria, autoencoders y CNN de regresión).
+	\item \textbf{scikit-learn}: modelos de Gaussian Mixture Model e Isolation Forest, además de utilidades de preprocesado (\texttt{StandardScaler}, \texttt{train\_test\_split}), reducción de dimensionalidad (PCA) y métricas de evaluación (curva ROC, AUC, matriz de confusión).
+	\item \textbf{Matplotlib} y \textbf{Seaborn}: generación de todas las gráficas incluidas en la memoria.
+\end{itemize}
+
+\section{Datos}
+\label{sec:datos-herramientas}
+
+Los datos de partida son dos ficheros en formato \texttt{.root}, correspondientes a capturas del sensor TES del experimento ALPS II: uno con pulsos LIGHT (disparados por el láser) y otro con pulsos DARK (fondo, sin láser). Cada fichero contiene un árbol \texttt{alazar\_data} del que se extrae la rama \texttt{dataChA}, con la traza de tensión completa de cada disparo, y un árbol \texttt{alazar\_parameters} con metadatos de la adquisición.
+
+\section{Redacción de la memoria}
+\label{sec:redaccion-memoria}
+
+La memoria se ha escrito en \LaTeX{}, a partir de la plantilla de TFG/TFM de la Universidad de Alcalá, compilada con \textbf{TeX Live 2025} mediante \texttt{latexmk}.
+
+%%% Local Variables:
+%%% TeX-master: "../book"
+%%% End:

@@ -1,0 +1,65 @@
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%
+% Generic template for TFC/TFM/TFG/Tesis
+%
+% By:
+%  + Javier Macías-Guarasa.
+%    Departamento de Electrónica
+%    Universidad de Alcalá
+%  + Roberto Barra-Chicote.
+%    Departamento de Ingeniería Electrónica
+%    Universidad Politécnica de Madrid
+%
+% By: + Javier Macías-Guarasa. Departamento de Electrónica Universidad de Alcalá + Roberto Barra-Chicote. Departamento de Ingeniería Electrónica Universidad Politécnica de Madrid
+%
+% Based on original sources by Roberto Barra, Manuel Ocaña, Jesús Nuevo, Pedro Revenga, Fernando Herránz and Noelia Hernández. Thanks a lot to all of them, and to the many anonymous contributors found (thanks to google) that provided help in setting all this up.
+%
+% See also the additionalContributors.txt file to check the name of additional contributors to this work.
+%
+% If you think you can add pieces of relevant/useful examples, improvements, please contact us at (macias@depeca.uah.es)
+%
+% You can freely use this template and please contribute with comments or suggestions!!!
+%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\chapter{Conclusiones y líneas futuras}
+\label{cha:concl-y-line}
+
+En este último capítulo se recogen las conclusiones generales del trabajo, a la luz de los resultados presentados en el Capítulo \ref{cha:resultados}, y se proponen algunas líneas en las que se podría continuar este trabajo en el futuro.
+
+\section{Conclusiones}
+\label{sec:conclusiones}
+
+El objetivo de este trabajo era comprobar si un modelo de aprendizaje automático entrenado sin ver nunca un ejemplo de ruido puede discriminar los pulsos DARK de los pulsos LIGHT en el TES del experimento ALPS II con una capacidad parecida a la de un modelo supervisado, y en particular, si alguno de esos modelos podía suponer una alternativa a la CNN de clasificación binaria usada en el artículo de referencia, que obtenía peores resultados que el método clásico de cortes.
+
+Los cinco modelos evaluados en el Capítulo \ref{cha:resultados} superan con claridad a un clasificador aleatorio. La CNN binaria, el modelo de referencia supervisado, obtiene el mejor resultado (AUC=0.994), algo esperable porque es el único que ve ambas clases etiquetadas durante el entrenamiento. Sin embargo, el resultado más relevante de este trabajo es el del GMM Solo Light: usando solo 3 características extraídas a mano y sin ver nunca un pulso DARK, alcanza un AUC de 0.982, a solo 0.012 del modelo supervisado. Es la prueba más clara obtenida en este TFG de que un detector de anomalías de una sola clase puede acercarse mucho a un clasificador supervisado tradicional, que era la hipótesis de partida del trabajo.
+
+La CNN de regresión queda muy cerca del GMM (AUC=0.972), aunque con un comportamiento distinto: es muy competitiva exigiendo un 95\,\% de recall sobre DARK, pero se degrada notablemente al exigir el 99\,\%, algo que se ha comprobado en dos ventanas de muestras distintas y que por tanto parece una característica real del modelo y no una casualidad de una ejecución concreta. Isolation Forest obtiene un resultado sólido y perfectamente reproducible (AUC=0.948), aunque algo por debajo del GMM, probablemente porque trabaja sobre la traza completa en vez de sobre características diseñadas para capturar la forma del pulso. El autoencoder Solo Light es el modelo más débil de los cinco (AUC=0.917); todo apunta a que su función de pérdida, calculada sobre la traza completa, diluye la señal del pico del pulso entre las muestras de línea base, que son mayoría en la ventana.
+
+Un hallazgo transversal, que aparece de forma consistente en prácticamente todos los análisis del Capítulo \ref{cha:resultados} (el PCA sobre trazas crudas, los espacios latentes de los autoencoders, la distribución de scores de Isolation Forest), es que existe un subconjunto de pulsos DARK cuya forma es muy parecida a la de un pulso LIGHT, y que ningún modelo separa del todo bien. Es razonable pensar que este subconjunto esté relacionado con los fotones de radiación de cuerpo negro que motivaron este trabajo (Sección \ref{sec:motivacion} del Marco teórico), aunque este TFG no ha llegado a aislar y confirmar esa correspondencia de forma directa, ya que el conjunto DARK disponible mezcla ese tipo de ruido con otros (térmico, cósmico, etc.) sin distinguir cuál es cuál.
+
+Este límite tiene además un respaldo directo en el propio artículo de referencia. Sus autores llegaron a disponer, en un experimento posterior, de una forma de reetiquetar directamente qué disparos correspondían a fotones de cuerpo negro a partir de un detector auxiliar, y comprobaron que al entrenar la CNN con esas etiquetas correctas el $F_1$-score y el $S$-score mejoraban de forma notable frente a usar solo las etiquetas LIGHT/DARK originales. Aun así, su propia conclusión es que ese reetiquetado no basta para alcanzar el fondo mínimo teórico del detector, y que el paso definitivo pasa por una solución física: un filtro óptico de banda estrecha criogénico que bloquee los fotones de cuerpo negro antes de que lleguen al TES. Esto encaja con lo observado en este trabajo: el subconjunto de pulsos DARK indistinguibles de LIGHT no parece un problema de qué modelo se use, sino de que, a la resolución energética del TES, esos pulsos son físicamente casi idénticos. Ningún clasificador, por sofisticado que sea, puede separar de forma fiable dos señales que llevan prácticamente la misma información. Conviene tener presente que el problema de fondo es físico: la mejora que puede aportar el software tiene un techo, y superarlo pasa por actuar sobre el propio detector, suprimiendo el ruido antes de que se generen los datos, y no solo por filtrarlo después mediante un modelo.
+
+Por último, cabe destacar que buena parte del trabajo no ha sido solo entrenar y comparar modelos, sino verificar que la comparación fuese correcta y justa. Durante el desarrollo se encontraron y corrigieron varios errores metodológicos que, de no haberse detectado, habrían falseado los resultados: una fuga de información en la normalización de datos (usar estadísticas del propio conjunto de test en vez de las del entrenamiento), una inversión de etiquetas en el cálculo del AUC del GMM y de los autoencoders (la clase considerada ``anómala'' depende de con qué clase se entrena cada variante, y no siempre es DARK), y una evaluación de Isolation Forest que se hacía parcialmente sobre datos ya vistos en el entrenamiento. Corregir estos problemas, y comprobar con pruebas sintéticas que las correcciones eran matemáticamente correctas, ha sido tan importante para la validez del trabajo como el propio diseño de los modelos.
+
+\section{Líneas futuras}
+\label{sec:lineas-futuras}
+
+A partir de los resultados y limitaciones descritos en las secciones anteriores, se proponen las siguientes líneas de trabajo futuro:
+
+\begin{itemize}
+	\item \textbf{Aislar el subconjunto de pulsos DARK parecidos a LIGHT}. Sería el paso más directamente conectado con la motivación original del trabajo. Si se dispusiera de un conjunto de datos donde los fotones de cuerpo negro estuvieran etiquetados por separado del resto del ruido, se podría evaluar cada modelo específicamente sobre ese caso difícil, en vez de sobre la mezcla de todo tipo de ruido usada en este TFG.
+
+	\item \textbf{Combinar GMM y CNN de regresión}. Sus puntos fuertes son complementarios: el GMM es mejor exigiendo un recall muy alto sobre DARK (TPR=0.99), y la CNN de regresión es mejor en un punto de operación más moderado (TPR=0.95). Un esquema que combine ambos scores, por ejemplo promediándolos o entrenando un modelo sencillo que los combine, podría superar a cualquiera de los dos por separado.
+
+	\item \textbf{Revisar la métrica de evaluación de los autoencoders}. En este trabajo se probó restringir el cálculo del error de reconstrucción a una ventana fija centrada en el pico de cada traza, lo que mejoró notablemente la variante Solo Light pero empeoró la variante Solo Dark, probablemente porque el pulso DARK es más ancho y una ventana fija le queda corta. Una ventana de anchura adaptativa, ajustada a la duración real de la caída de cada clase, podría beneficiar a las dos variantes a la vez.
+
+	\item \textbf{Ampliar el conjunto de características del GMM}. Actualmente se usan solo 3 características ($V_{min}$, $\tau_{rise}$, $\tau_{decay}$), tomadas del artículo de referencia. Explorar características adicionales, por ejemplo relacionadas con el área bajo el pulso o con su contenido en frecuencia, podría mejorar aún más la separación entre clases.
+
+	\item \textbf{Explorar soluciones de supresión física del ruido}. Como se ha discutido en la Sección \ref{sec:conclusiones}, buena parte del ruido que ningún modelo separa bien parece tener un origen físico indistinguible por software a la resolución energética del TES. Una línea complementaria a los modelos evaluados en este trabajo sería estudiar, junto con el equipo experimental, medidas de supresión física del ruido en el propio detector, como el filtro óptico de banda estrecha criogénico propuesto en el artículo de referencia. Un modelo de aprendizaje automático y una mejora del hardware no son alternativas excluyentes: cuanto menos ruido físico llegue al TES, más fácil será para cualquiera de los modelos de este trabajo separar lo que quede.
+\end{itemize}
+
+
+%%% Local Variables:
+%%% TeX-master: "../book"
+%%% End:

@@ -1,0 +1,78 @@
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%
+% Generic template for TFC/TFM/TFG/Tesis
+%
+% By:
+%  + Javier Macías-Guarasa.
+%    Departamento de Electrónica
+%    Universidad de Alcalá
+%  + Roberto Barra-Chicote.
+%    Departamento de Ingeniería Electrónica
+%    Universidad Politécnica de Madrid
+%
+% By: + Javier Macías-Guarasa. Departamento de Electrónica Universidad de Alcalá + Roberto Barra-Chicote. Departamento de Ingeniería Electrónica Universidad Politécnica de Madrid
+%
+% Based on original sources by Roberto Barra, Manuel Ocaña, Jesús Nuevo, Pedro Revenga, Fernando Herránz and Noelia Hernández. Thanks a lot to all of them, and to the many anonymous contributors found (thanks to google) that provided help in setting all this up.
+%
+% See also the additionalContributors.txt file to check the name of additional contributors to this work.
+%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\chapter{Manual de uso del código}
+\label{cha:manual-de-usuario}
+
+\section{Introducción}
+\label{sec:intro-manual-de-usuario}
+
+Este apéndice explica cómo ejecutar el script \texttt{light\_and\_dark\_models\_classifyer\_v5.py}, que implementa todo el trabajo descrito en esta memoria: la carga de los datos del TES, el entrenamiento y evaluación de los cinco modelos (Sección \ref{sec:modelos-empleados}) y la comparación final entre ellos. El script se controla mediante un menú de texto por consola, en el que cada opción corresponde a una fase del proceso.
+
+\section{Preparación del entorno}
+\label{sec:preparacion-entorno}
+
+Antes de ejecutar el script es necesario:
+
+\begin{itemize}
+	\item Activar el entorno conda del proyecto, que contiene todas las bibliotecas necesarias (Sección \ref{sec:lenguaje-bibliotecas} del Apéndice \ref{cha:herr-y-recurs}):
+	      \begin{lstlisting}[style=BashInputStyle, numbers=none]
+conda activate tfg
+	      \end{lstlisting}
+	\item Tener los dos ficheros de datos (\texttt{.root}) en el mismo directorio que el script: el de pulsos LIGHT (\texttt{...-laser-...-trigger-10mV.root}) y el de pulsos DARK (\texttt{...-extrinsic-...-trigger-10mV.root}).
+\end{itemize}
+
+El script se lanza con:
+\begin{lstlisting}[style=BashInputStyle, numbers=none]
+python light_and_dark_models_classifyer_v5.py
+\end{lstlisting}
+
+Al arrancar se muestra el menú principal, reproducido en la Figura \ref{fig:menu-script}.
+
+\begin{figure}[h]
+	\centering
+	\includegraphics[width=0.55\textwidth]{menu_script}
+	\caption{Menú principal del script.}
+	\label{fig:menu-script}
+\end{figure}
+
+\section{Orden de ejecución}
+\label{sec:orden-ejecucion}
+
+Las opciones del menú no son independientes entre sí: cada una necesita que se hayan completado antes ciertos pasos previos (el propio script avisa con el mensaje \textit{``Hay un paso previo pendiente de procesar''} si se intenta saltar alguno). El orden habitual de uso es:
+
+\begin{enumerate}
+	\item \textbf{Opción 1 -- Mostrar jerarquía datasets}: abre los dos ficheros \texttt{.root} y muestra por consola su estructura interna (árboles y ramas), sin cargar todavía los datos en memoria.
+	\item \textbf{Opción 2 -- Cargar datasets}: extrae de cada fichero la traza completa de cada pulso (rama \texttt{dataChA} del árbol \texttt{alazar\_data}), obteniendo los conjuntos \texttt{LIGHT\_PULSES} y \texttt{DARK\_PULSES}.
+	\item \textbf{Opción 3 -- Estudio de datasets}: pide por teclado el número de trazas a visualizar y dibuja, entre otras gráficas, el pulso medio de cada clase sobre la región 1200-2600, el estudio exploratorio descrito en la Sección \ref{sec:preprocesado}.
+	\item \textbf{Opción 4 -- Selección de ventana de muestras}: pide el número de pulsos por clase a usar en el entrenamiento y el inicio/fin de la ventana de muestras a recortar de cada traza. Con los valores usados en este trabajo, la ventana definitiva es $[1200, 2400)$ (Sección \ref{sec:preprocesado}). Esta opción es la que prepara los conjuntos de entrenamiento y test (\texttt{X\_light}, \texttt{X\_dark}, \texttt{X\_light\_test}, \texttt{X\_dark\_test}) que usan todos los modelos siguientes, por lo que debe ejecutarse antes que las opciones 5-10.
+	\item \textbf{Opciones 5-9 -- Entrenamiento y evaluación de cada modelo}: CNN de clasificación binaria (5), autoencoders (6), GMM (7), Isolation Forest (8) y CNN de regresión (9). Cada una entrena el modelo correspondiente sobre la ventana seleccionada en la opción 4 y muestra sus métricas y gráficas de evaluación (curva ROC, matriz de confusión, distribución de errores/scores, etc., según el modelo). Pueden ejecutarse en cualquier orden entre sí, pero todas requieren haber pasado antes por la opción 4.
+	\item \textbf{Opción 10 -- Comparación de modelos}: requiere haber ejecutado antes las cinco opciones anteriores. Dibuja las curvas ROC de los cinco modelos sobre la misma gráfica (tomando, de GMM y autoencoders, la variante con mayor AUC de las tres entrenadas) e imprime la tabla de puntos de operación (FPR a TPR fijo) usada en el Capítulo \ref{cha:resultados}.
+	\item \textbf{Opción 0 -- Salir}: termina la ejecución del programa.
+\end{enumerate}
+
+\section{Resultados generados}
+\label{sec:resultados-generados}
+
+Todas las gráficas que se generan durante la ejecución se guardan automáticamente en formato \texttt{.png}, en un subdirectorio \texttt{figuras\_memoria/} dentro del directorio desde el que se lanza el script, además de mostrarse en pantalla. Son estas figuras las que se han utilizado directamente en el Capítulo \ref{cha:resultados} de esta memoria.
+
+%%% Local Variables:
+%%% TeX-master: "../book"
+%%% End:

@@ -1,0 +1,256 @@
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%
+% Generic template for TFC/TFM/TFG/Tesis
+%
+% $Id: desarrollo.tex,v 1.4 2015/06/05 00:05:18 macias Exp $
+%
+% By:
+%  + Javier Macías-Guarasa.
+%    Departamento de Electrónica
+%    Universidad de Alcalá
+%  + Roberto Barra-Chicote.
+%    Departamento de Ingeniería Electrónica
+%    Universidad Politécnica de Madrid
+%
+% Based on original sources by Roberto Barra, Manuel Ocaña, Jesús Nuevo, Pedro Revenga, Fernando Herránz and Noelia Hernández. Thanks a lot to all of them, and to the many anonymous contributors found (thanks to google) that provided help in setting all this up.
+%
+% See also the additionalContributors.txt file to check the name of additional contributors to this work.
+%
+% If you think you can add pieces of relevant/useful examples, improvements, please contact us at (macias@depeca.uah.es)
+%
+% You can freely use this template and please contribute with comments or suggestions!!!
+%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\chapter{Metodología}
+\label{cha:metodologia}
+
+
+\section{Introducción}
+\label{sec:introduccion-desarrollo}
+
+Este capítulo describe el proceso seguido para diseñar, implementar y entrenar los distintos modelos de aprendizaje automático empleados en este proyecto. 
+Se organiza en seis apartados: en primer lugar se describen los conjuntos de datos de partida (Sección \ref{sec:conjuntos-de-datos}); a continuación se 
+detalla el preprocesado aplicado a las señales antes de alimentar cualquier modelo (Sección \ref{sec:preprocesado}); después se explica la estrategia experimental
+común a todos los modelos (Sección \ref{sec:estrategia-experimental}); se describe la arquitectura y los hiperparámetros de cada uno de los cinco modelos implementados (Sección \ref{sec:modelos-empleados}); 
+se presentan las métricas utilizadas para evaluar y comparar su rendimiento (Sección \ref{sec:metricas-evaluacion}); y, por último, se resume el entorno software utilizado para la implementación (Sección \ref{sec:entorno-implementacion}).
+
+Todo el pipeline descrito en este capítulo —desde la carga de los ficheros de datos hasta la comparación final de los modelos— se ha implementado en un único script de Python con un menú interactivo, que permite ejecutar cada etapa
+de forma independiente y reutilizar los resultados de etapas anteriores.
+
+
+\section{Conjuntos de datos}
+\label{sec:conjuntos-de-datos}
+
+Los datos de partida proceden de dos ficheros en formato ROOT, generados por el sistema de adquisición del \textit{Transition Edge Sensor} (TES) 
+descrito en la Sección \ref{sec:experimento-alps}:
+
+\begin{itemize}
+	\item \textbf{Conjunto LIGHT}: pulsos capturados con el láser encendido (\textit{trigger} en modo láser). Contiene, junto con el ruido de
+	fondo inevitable, los fotones generados por el láser que se busca caracterizar.
+	\item \textbf{Conjunto DARK}: pulsos capturados con el láser apagado (\textit{trigger extrínseco}). Contiene únicamente ruido: térmico,
+	cósmico y fotones de cuerpo negro, sin contribución del láser.
+\end{itemize}
+
+Ambos ficheros almacenan, dentro del árbol \texttt{alazar\_data}, la rama \texttt{dataChA} (Figura \ref{fig:estructura-datasets}), que contiene una traza de voltaje $V_{out}(t)$ por cada pulso capturado,
+muestreada a 50 MHz. La lectura de estos ficheros se realiza con la librería \texttt{uproot}, que permite acceder a los árboles y ramas de ROOT directamente como
+arrays de \texttt{NumPy}, sin depender de las librerías nativas de ROOT/PyROOT.
+
+\begin{figure}[h] %h indica que ponga la figura aqui si es posible
+	\centering
+	\includegraphics[width=0.70\textwidth]{estructura-datasets}
+	\caption{Estructura de los conjuntos de datos.}
+	\label{fig:estructura-datasets}
+\end{figure}
+
+El conjunto de pulsos \textit{Light} contien 4722 pulsos y cada uno de ellos está formado por 10.000 muestras. Por otro lado, los pulsos \textit{Dark} contiene 8820 pulsos con 10.000 muestras 
+cada uno. Como se observó en el estudio exploratorio de los datos, la parte informativa del pulso —la caída de tensión asociada a la llegada de un fotón y su posterior recuperación— se concentra
+en una región relativamente estrecha de cada traza, lo que motiva la selección de ventana descrita en la Sección \ref{sec:preprocesado}.
+
+
+\section{Preprocesado de las señales}
+\label{sec:preprocesado}
+
+Antes de entrenar cualquier modelo, las trazas crudas se someten a un preprocesado común, formado por tres pasos:
+
+\begin{enumerate}
+	\item \textbf{Selección de ventana de muestras}: de cada traza completa se recorta únicamente el intervalo \([inicio,\,fin)\) que contiene la información relevante
+	del pulso, descartando el resto de la traza. El punto de inicio y fin de esta ventana, así como el número de pulsos de cada clase destinados a entrenamiento, son
+	parámetros configurables. En el estudio exploratorio de los datos se calculó el pulso medio de cada clase (Figura \ref{fig:estudio-pulso-medio-ventana}), observándose que la región donde se concentra la mayor parte de la energía del pulso, tanto en LIGHT como en DARK, se sitúa aproximadamente entre las muestras 1200 y 2600. Tomando esa región como referencia, se probaron distintas ventanas concretas dentro de ese rango, comprobándose empíricamente (Capítulo \ref{cha:resultados}) que el intervalo $[1200, 2400)$ es el que mejor resultado obtiene en el conjunto de modelos evaluados, por lo que se adopta como ventana definitiva para todo el trabajo.
+
+	\begin{figure}[h]
+		\centering
+		\includegraphics[width=0.7\textwidth]{estudio_pulso_medio_ventana}
+		\caption{Pulso medio de cada clase y región de interés identificada en el estudio exploratorio de los datos (muestras 1200-2600).}
+		\label{fig:estudio-pulso-medio-ventana}
+	\end{figure}
+
+	\item \textbf{Corrección de línea base (\textit{baseline})}: a cada traza recortada se le resta el valor medio de las muestras previas al inicio de la ventana (\(\text{offset} = \text{media}(traza[0:inicio])\)). Esto elimina el desplazamiento y hace comparables las trazas entre sí. Esta corrección se aplica de forma idéntica al conjunto de entrenamiento y al conjunto de test, de modo que ambos se preprocesan exactamente de la misma manera.
+
+	\item \textbf{Normalización}: las trazas recortadas se normalizan restando la media y dividiendo por la desviación típica. Estos dos estadísticos se calculan \emph{únicamente} sobre el conjunto de entrenamiento, y los mismos valores se reutilizan para normalizar el conjunto de test, evitando así una fuga de información (\textit{data leakage}) entre ambos conjuntos.
+\end{enumerate}
+
+A partir de las trazas ya recortadas, corregidas de \textit{offset} y normalizadas, se generan los conjuntos \texttt{X\_light} y \texttt{X\_dark} (usados para entrenamiento y validación) y \texttt{X\_light\_test}/\texttt{X\_dark\_test} (usados exclusivamente para evaluación final, con pulsos que el modelo no ha visto durante el entrenamiento).
+
+
+\section{Estrategia experimental}
+\label{sec:estrategia-experimental}
+
+Como se ha adelantado en la Sección \ref{sec:motivacion}, el modelo de referencia —la CNN de clasificación binaria propuesta en el artículo de partida— es un modelo \textbf{supervisado}: se entrena con pulsos LIGHT y DARK etiquetados simultáneamente, aprendiendo de forma directa a distinguir ambas clases.
+
+Los cuatro modelos propuestos en este trabajo (autoencoders, GMM, Isolation Forest y CNN de regresión), sin embargo, se entrenan siguiendo un enfoque de \textbf{detección de anomalías de una sola clase}: cada instancia entrenada del modelo aprende a partir de un único tipo de pulso, al que se considera la distribución "normal" de datos, y la clase contraria nunca se usa para ajustar sus parámetros; solo se emplea, junto con una partición de la clase de entrenamiento no vista en el ajuste, en la fase de evaluación, para comprobar si el modelo es capaz de identificarla como anómala por no ajustarse al patrón aprendido.
+
+Esto no significa que los cuatro modelos se entrenen únicamente con LIGHT. Para dos de ellos —Isolation Forest y CNN de regresión (Secciones \ref{sec:isolation-forest} y \ref{sec:cnn-regresion})— solo se ha entrenado una variante, usando LIGHT como clase de entrenamiento. Para los otros dos —autoencoders y GMM (Secciones \ref{sec:autoencoders} y \ref{sec:gmm})— se han diseñado y entrenado \textbf{tres variantes independientes} del mismo modelo, una por cada elección posible de clase de entrenamiento: \emph{Solo Light}, \emph{Solo Dark} y \emph{Light+Dark combinado} (en esta última, la "clase de entrenamiento" es la unión de ambos tipos de pulso, sin distinción de anomalía). De las tres variantes se selecciona automáticamente, para cada modelo, la que obtiene mayor AUC, y es esa la que se emplea para representarlo en la comparación final (Sección \ref{sec:comparacion-global}); las tres se comparan también entre sí en el Capítulo \ref{cha:resultados}
+
+Esta asimetría entre el modelo de referencia (supervisado, dos clases) y los modelos propuestos (una clase, no supervisados) es intencionada: el objetivo del trabajo es determinar si un modelo que nunca ha visto un ejemplo de ruido durante su entrenamiento es capaz de reconocerlo igualmente bien —o mejor— que un modelo entrenado de forma supervisada con ambas clases.
+
+Esta asimetría tiene, además, una consecuencia directa en el volumen de datos que ve cada modelo durante el entrenamiento, que conviene cuantificar para no confundirla con un descuido experimental. Tomando como ejemplo $n\_samples=1000$ pulsos por clase (parámetro configurable, Sección \ref{sec:preprocesado}): la CNN binaria combina LIGHT y DARK antes de dividir en entrenamiento/validación, por lo que ve un total de 2000 pulsos (1600 de entrenamiento, 400 de validación, de ambas clases). El autoencoder Light+Dark, al entrenarse también con la unión de ambos conjuntos, ve igualmente 2000 pulsos. Sin embargo, los modelos que se entrenan con una sola clase —autoencoder Light, autoencoder Dark, GMM Light, GMM Dark e Isolation Forest— solo disponen de los 1000 pulsos de su propia clase (800 de entrenamiento, 200 de validación tras la partición 80/20); los 1000 pulsos de la clase contraria quedan completamente fuera del entrenamiento y solo se usan para la evaluación. No se trata de una limitación accidental del diseño experimental, sino de la contrapartida lógica de restringir a estos modelos a un régimen de una sola clase: si se les permitiera usar los pulsos DARK durante el entrenamiento, dejarían de ser detectores de anomalías y la comparación con la CNN binaria perdería su sentido.
+
+Por coherencia entre los propios modelos de una clase, todos ellos —autoencoder Light/Dark, GMM Light/Dark, Isolation Forest y CNN de regresión— reservan el mismo 20\,\% de su clase de entrenamiento para evaluación, de forma que ninguno se evalúa sobre pulsos que ha visto durante el ajuste.
+
+
+\section{Modelos empleados}
+\label{sec:modelos-empleados}
+
+En esta sección se detalla la arquitectura y los hiperparámetros de cada uno de los cinco modelos implementados. Los tres primeros —CNN binaria, autoencoders y CNN de regresión— comparten un mismo bloque convolucional 1D, descrito una única vez en la Sección \ref{sec:cnn-binaria} para no repetirlo.
+
+\subsection{CNN de clasificación binaria (modelo de referencia)}
+\label{sec:cnn-binaria}
+
+Este modelo reproduce la arquitectura empleada en el artículo de referencia (Sección \ref{sec:motivacion}) y sirve como línea base con la que comparar el resto de modelos. Su arquitectura, resumida en la Tabla \ref{tab:hiperparametros-cnn}, consiste en:
+
+\begin{itemize}
+	\item Un bloque de 6 capas convolucionales 1D, cada una con 45 filtros de tamaño de kernel 5 y activación \textit{tanh}, seguida de una capa de \textit{MaxPooling1D} de tamaño 2.
+	\item Tras aplanar (\textit{flatten}) la salida del bloque convolucional, 3 capas densas con activación ReLU, cuyo número de unidades comienza en 188 y se reduce a la mitad en cada capa sucesiva (188 $\rightarrow$ 94 $\rightarrow$ 47), cada una seguida de una capa de \textit{Dropout} con tasa 0,18 para mitigar el sobreajuste.
+	\item Una capa de salida de una única neurona con activación sigmoide, cuyo valor representa la probabilidad de que la traza de entrada sea un pulso LIGHT.
+\end{itemize}
+
+\begin{figure}[h] %h indica que ponga la figura aqui si es posible
+	\centering
+	\includegraphics[width=0.45\textwidth]{arquitectura-cnn}
+	\caption{Arquitectura de una red neuronal convolucional.}
+	\label{fig:arquitectura-cnn}
+\end{figure}
+
+El modelo se compila con el optimizador Adam (tasa de aprendizaje $5.2\times10^{-4}$) y la función de pérdida \textit{binary crossentropy}. Se entrena durante 20 épocas con un tamaño de lote de 99 muestras, sobre una partición 80\,/\,20 (entrenamiento/validación) estratificada de LIGHT y DARK combinados y mezclados aleatoriamente.
+
+\begin{table}[h]
+	\centering
+	\caption{Hiperparámetros comunes al bloque convolucional de la CNN binaria y la CNN de regresión.}
+	\label{tab:hiperparametros-cnn}
+	\begin{tabular}{ll}
+		\toprule
+		Hiperparámetro & Valor \\
+		\midrule
+		Capas convolucionales & 6 \\
+		Filtros por capa & 45 \\
+		Tamaño de kernel & 5 \\
+		Activación (conv.) & tanh \\
+		\textit{Pooling} & MaxPooling1D (tamaño 2) \\
+		Capas densas & 3 (188 $\rightarrow$ 94 $\rightarrow$ 47) \\
+		Activación (densas) & ReLU \\
+		\textit{Dropout} & 0,18 \\
+		Optimizador & Adam ($lr=5.2\times10^{-4}$) \\
+		Épocas & 20 \\
+		Tamaño de lote & 99 \\
+		\bottomrule
+	\end{tabular}
+\end{table}
+
+\subsection{Autoencoders}
+\label{sec:autoencoders}
+
+Un autoencoder es una red neuronal entrenada para reconstruir su propia entrada a través de un cuello de botella (\textit{bottleneck}) de dimensión reducida, obligando a la red a aprender una representación comprimida de los datos. La hipótesis de partida es que un autoencoder entrenado exclusivamente con pulsos LIGHT aprenderá a reconstruirlos con un error bajo, mientras que, al recibir un pulso DARK —con una morfología distinta a la aprendida—, el error de reconstrucción debería ser sensiblemente mayor. Este error de reconstrucción es, por tanto, el \textit{score} de anomalía utilizado para distinguir ambas clases.
+
+La arquitectura, común a las tres variantes entrenadas, es la siguiente:
+
+\begin{itemize}
+	\item \textbf{Codificador}: tres capas convolucionales 1D (32, 16 y 8 filtros, con kernels de tamaño 7, 5 y 3 respectivamente, activación ReLU), cada una seguida de \textit{MaxPooling1D} de tamaño 2. La salida se aplana y se proyecta mediante una capa densa a un espacio latente de dimensión 16.
+	\item \textbf{Decodificador}: estructura simétrica al codificador, empleando capas \textit{Conv1DTranspose} y \textit{UpSampling1D} para reconstruir progresivamente la longitud original de la traza, terminando en una capa convolucional de salida con activación lineal.
+\end{itemize}
+
+Cuando la longitud de la ventana de entrada no es múltiplo de 8 (dado que se aplican tres reducciones de resolución por un factor 2), la red añade automáticamente relleno de ceros (\textit{zero-padding}) a la entrada y recorta (\textit{cropping}) la salida en la misma cantidad, de forma transparente para el resto del \textit{pipeline}.
+
+Se entrenan tres variantes independientes de este mismo autoencoder, cada una únicamente con el conjunto de entrenamiento indicado (80\,/\,20 entrenamiento/validación en los tres casos), para comparar cómo afecta el conjunto de entrenamiento a la capacidad de discriminación final:
+
+\begin{itemize}
+	\item \textbf{Solo LIGHT}: entrenado únicamente con pulsos LIGHT.
+	\item \textbf{Solo DARK}: entrenado únicamente con pulsos DARK (a modo de comparación, invirtiendo el papel de clase "normal").
+	\item \textbf{LIGHT + DARK combinado}: entrenado con la unión de ambos conjuntos.
+\end{itemize}
+
+Las tres variantes se compilan con el optimizador Adam ($lr=5.2\times10^{-4}$) y función de pérdida MAE (error absoluto medio), y se entrenan durante 20 épocas con lotes de 99 muestras.
+
+\subsection{Modelo de Mezcla Gaussiana (GMM)}
+\label{sec:gmm}
+
+A diferencia de los modelos anteriores, el GMM no trabaja directamente sobre la traza cruda, sino sobre un vector reducido de tres características extraídas de cada pulso, descrito en la Tabla \ref{tab:features-gmm}. Esta reducción de dimensionalidad es necesaria porque, trabajando con la traza completa (del orden de mil muestras), cada componente gaussiana del modelo requeriría estimar una matriz de covarianza con un número de parámetros muy superior al de pulsos disponibles para el entrenamiento (maldición de la dimensionalidad).
+
+\begin{table}[h]
+	\centering
+	\caption{Características extraídas de cada pulso para el GMM.}
+	\label{tab:features-gmm}
+	\begin{tabular}{ll}
+		\toprule
+		Característica & Descripción \\
+		\midrule
+		$v_{min}$ & Amplitud mínima de la traza (pico del pulso). \\
+		$\tau_{rise}$ & Tiempo entre el 10\,\% y el 90\,\% de la amplitud, en el flanco de bajada. \\
+		$\tau_{decay}$ & Tiempo de recuperación desde el mínimo hasta el 10\,\% de la amplitud. \\
+		\bottomrule
+	\end{tabular}
+\end{table}
+
+Estas características se normalizan con un \texttt{StandardScaler} ajustado exclusivamente sobre las características extraídas del conjunto de entrenamiento LIGHT; los mismos parámetros de normalización se reutilizan tanto para el conjunto de test de LIGHT como para el conjunto DARK, garantizando que ambas clases se comparan en el mismo espacio normalizado.
+
+El modelo se entrena \emph{únicamente} con las características LIGHT normalizadas, empleando 5 componentes gaussianas con matriz de covarianza completa (\textit{covariance\_type=`full'}), 5 inicializaciones distintas (\textit{n\_init=5}) y un máximo de 200 iteraciones. En la fase de evaluación, se calcula la log-verosimilitud de cada pulso —LIGHT y DARK— bajo el modelo entrenado; una log-verosimilitud baja indica que el pulso encaja mal con la distribución aprendida, y se interpreta como \textit{score} de anomalía.
+
+\subsection{Isolation Forest}
+\label{sec:isolation-forest}
+
+El Isolation Forest es un modelo de detección de anomalías basado en árboles de decisión aleatorios: una muestra anómala requiere, en promedio, menos particiones para quedar aislada del resto que una muestra normal. A diferencia del GMM, este modelo se aplica directamente sobre las trazas normalizadas completas (sin extracción manual de características), y al igual que los demás modelos propuestos, se entrena únicamente con pulsos LIGHT.
+
+Se configura con 100 estimadores (\textit{n\_estimators=100}), tamaño de submuestra automático (\textit{max\_samples=`auto'}) y una contaminación esperada del 5\,\% (\textit{contamination=0.05}), es decir, se asume que hasta un 5\,\% del propio conjunto de entrenamiento LIGHT podría comportarse como atípico. La evaluación se realiza calculando la puntuación de anomalía (\textit{score\_samples}) tanto para LIGHT como para DARK: cuanto más negativa es la puntuación, más fácil resulta aislar la muestra y, por tanto, más anómala se considera.
+
+\subsection{CNN de regresión}
+\label{sec:cnn-regresion}
+
+Esta alternativa, sugerida también en el artículo de referencia, plantea la detección de ruido de forma indirecta: en lugar de clasificar el pulso como LIGHT o DARK, la red se entrena para predecir $V_{min}$ (el valor mínimo de tensión de la traza, proporcional a la energía del pulso). La hipótesis es que, si el modelo solo ha aprendido a estimar la energía de pulsos LIGHT, su predicción será precisa sobre pulsos LIGHT no vistos, pero fallará sistemáticamente sobre pulsos DARK, cuya morfología —y por tanto la relación entre su forma y su energía— es distinta.
+
+El bloque convolucional es idéntico al descrito en la Sección \ref{sec:cnn-binaria} y la Tabla \ref{tab:hiperparametros-cnn} (6 capas convolucionales, 45 filtros, kernel 5, 3 capas densas), cambiando únicamente la capa de salida, que pasa a tener activación lineal, y la función de pérdida, que pasa a ser MAE (regresión) en lugar de \textit{binary crossentropy}.
+
+El modelo se entrena y valida \emph{únicamente} con pulsos LIGHT (partición 80\,/\,20), normalizando tanto las trazas de entrada como el propio objetivo $V_{min}$ con la media y desviación típica calculadas sobre el conjunto de entrenamiento LIGHT. En la evaluación, se calcula el error absoluto de predicción $|V_{min}^{real} - V_{min}^{predicho}|$ sobre LIGHT y sobre DARK; este error se interpreta como \textit{score} de anomalía, igual que en los modelos anteriores.
+
+
+\section{Métricas de evaluación}
+\label{sec:metricas-evaluacion}
+
+Para el modelo de referencia (CNN binaria), al tratarse de un clasificador supervisado de dos clases, se emplean las métricas habituales de clasificación: \textit{accuracy}, precisión, \textit{recall} y $F_1$-\textit{score} (obtenidas mediante el informe de clasificación de \texttt{scikit-learn}), junto con la matriz de confusión sobre el conjunto de test.
+
+Para los cuatro modelos propuestos, al tratarse de detectores de anomalías de una sola clase, no existe un umbral de decisión explícito durante el entrenamiento. Por ello, la métrica principal de evaluación es la \textbf{curva ROC} y el \textbf{área bajo la curva (AUC)}, calculadas etiquetando los pulsos DARK como la clase positiva ("anomalía", etiqueta 1) y los pulsos LIGHT como la clase negativa ("normal", etiqueta 0), y utilizando como \textit{score} continuo el indicador de anomalía propio de cada modelo:
+
+\begin{itemize}
+	\item Autoencoders: error de reconstrucción (MAE) por traza.
+	\item GMM: log-verosimilitud negada de las características extraídas.
+	\item Isolation Forest: puntuación de anomalía (\textit{score\_samples}) negada.
+	\item CNN de regresión: error absoluto de predicción de $V_{min}$.
+\end{itemize}
+
+El uso de una misma métrica (AUC) para los cuatro modelos propuestos, y también calculable para el modelo de referencia a partir de sus probabilidades de salida, permite compararlos entre sí y frente a la CNN binaria de forma homogénea en el capítulo de Resultados (Capítulo \ref{cha:resultados}).
+
+
+\section{Entorno de implementación}
+\label{sec:entorno-implementacion}
+
+Todo el trabajo experimental se ha implementado en Python, apoyándose en las siguientes librerías principales: \texttt{TensorFlow}/\texttt{Keras} para las redes neuronales (CNN binaria, CNN de regresión y autoencoders), \texttt{scikit-learn} para el GMM, el Isolation Forest, la normalización de características y el cálculo de métricas, \texttt{uproot} para la lectura de los ficheros ROOT de entrada, y \texttt{matplotlib}/\texttt{seaborn} para la generación de las gráficas de resultados. El desarrollo se ha realizado sobre Windows Subsystem for Linux (WSL), detallado junto con el resto de herramientas empleadas en el Apéndice \ref{cha:herr-y-recurs}.
+
+
+\section{Conclusiones}
+\label{sec:conclusiones-desarrollo}
+
+En este capítulo se ha descrito el procedimiento seguido para preparar los datos y entrenar los cinco modelos evaluados en este trabajo: la CNN de clasificación binaria, tomada como referencia supervisada, y los cuatro modelos propuestos —autoencoders, GMM, Isolation Forest y CNN de regresión—, entrenados como detectores de anomalías de una sola clase usando exclusivamente pulsos LIGHT. Se ha definido también la métrica común (AUC de la curva ROC) que permitirá comparar de forma homogénea el rendimiento de todos ellos. El Capítulo \ref{cha:resultados} recoge los resultados obtenidos al aplicar esta metodología sobre los conjuntos de datos descritos.
+
+
+%%% Local Variables:
+%%% TeX-master: "../book"
+%%% End:
