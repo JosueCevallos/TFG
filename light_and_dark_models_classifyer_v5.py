@@ -101,7 +101,7 @@ def main():
         # --------------------------------------------------
         elif opcion == "3":
             n = int(input("Número de trazas a visualizar: "))
-            estudio_datasets(LIGHT_PULSES,DARK_PULSES,n,1200,2600)
+            LIGHT_PULSES_SIN_OFFSET, DARK_PULSES_SIN_OFFSET = estudio_datasets(LIGHT_PULSES,DARK_PULSES,n,1200,2600)
         # --------------------------------------------------
         # 4. Selección ventana
         # --------------------------------------------------
@@ -109,7 +109,7 @@ def main():
             n_samples = int(input("Número de muestras por clase para entrenamiento: "))
             inicio = int(input("Inicio ventana de muestras: "))
             fin = int(input("Fin ventana de muestras: "))
-            X_light, X_dark, X_light_test, X_dark_test = seleccionar_ventana_muestras(LIGHT_PULSES, DARK_PULSES,n_samples, inicio, fin)
+            X_light, X_dark, X_light_test, X_dark_test = seleccionar_ventana_muestras(LIGHT_PULSES_SIN_OFFSET, DARK_PULSES_SIN_OFFSET,n_samples, inicio, fin)
         # --------------------------------------------------
         # 5. CNN de clasificación binaria
         # --------------------------------------------------
@@ -279,100 +279,150 @@ def estudio_datasets(light_dataset, dark_dataset,n_trazas,ventana_ini,ventana_fi
     print(f"Número de pulsos DARK : {len(dark_dataset)}")
     print(f"Muestras por traza    : {light_dataset[0].shape[0]}")
 
+    trazas_light_sin_offset = []
+    trazas_dark_sin_offset = []
+
+    for traza in light_dataset:
+        offset = np.mean(traza[:1200]) if ventana_ini > 0 else 0.0 #1200 es el limite antes de empezar un pulso
+        trazas_light_sin_offset.append(traza - offset)
+    for traza in dark_dataset:
+        offset = np.mean(traza[:1200]) if ventana_ini > 0 else 0.0
+        trazas_dark_sin_offset.append(traza - offset)
 
     # ===================================
-    # Trazas LIGHT en escala temporal
+    # Trazas LIGHT individuales en escala temporal (Con vs Sin Offset)
     # ===================================
 
-    fig, axes = plt.subplots(n_trazas, 1, figsize=(10, 2 * n_trazas))
+    fig, axes = plt.subplots(n_trazas, 2, figsize=(18, 2 * n_trazas))
     if n_trazas == 1:
-        axes = [axes]
+        axes = np.expand_dims(axes, axis=0)
+
     for i in range(n_trazas):
         t = np.arange(len(light_dataset[i])) / 50
-        axes[i].plot(t, light_dataset[i] * 1000)
+        # Con offset
+        axes[i, 0].plot(t, light_dataset[i] * 1000)
+        axes[i, 0].set_ylabel("V (mV)")
+        axes[i, 0].set_xlabel("t (µs)")
+        axes[i, 0].set_title(f"Traza LIGHT {i} (Con offset)")
+        axes[i, 0].yaxis.set_major_locator(ticker.MultipleLocator(5))
 
-        axes[i].set_ylabel("V (mV)")
-        axes[i].set_xlabel("t (µs)")
-        axes[i].set_title(f"Traza LIGHT {i}")
+        # Sin offset
+        axes[i, 1].plot(t, trazas_light_sin_offset[i] * 1000, color="orange")
+        axes[i, 1].set_ylabel("V (mV)")
+        axes[i, 1].set_xlabel("t (µs)")
+        axes[i, 1].set_title(f"Traza LIGHT {i} (Sin offset)")
+        axes[i, 1].yaxis.set_major_locator(ticker.MultipleLocator(5))
+    plt.tight_layout()
+    #guardar_figura("comparativa_trazas_temporales_light")
+    plt.show()
+
+    # ===================================
+    # Primeras trazas LIGHT (Con vs Sin Offset)
+    # ===================================
+
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(18, 6))
+
+    # izquierda: Con offset
+    for i in range(n_trazas):
+        ax1.plot(light_dataset[i], alpha=0.7)
+    ax1.set_title(f"Primeras {n_trazas} trazas LIGHT (Con offset)")
+    ax1.set_xlabel("Muestras")
+    ax1.set_ylabel("Vout (V)")
+    ax1.grid(color='gray', linestyle='--', linewidth=0.2)
+    ax1.yaxis.set_major_locator(ticker.MultipleLocator(0.0025))
+    ax1.xaxis.set_major_locator(ticker.MultipleLocator(600))
+
+    # derecha: Sin offset
+    for i in range(n_trazas):
+        ax2.plot(trazas_light_sin_offset[i], alpha=0.7)
+    ax2.set_title(f"Primeras {n_trazas} trazas LIGHT (Sin offset)")
+    ax2.set_xlabel("Muestras")
+    ax2.set_ylabel("Vout (V)")
+    ax2.grid(color='gray', linestyle='--', linewidth=0.2)
+    ax2.yaxis.set_major_locator(ticker.MultipleLocator(0.0025))
+    ax2.xaxis.set_major_locator(ticker.MultipleLocator(600))
 
     plt.tight_layout()
-    #guardar_figura("estudio_trazas_light_individuales")
+    #guardar_figura("comparativa_primeras_trazas_light")
     plt.show()
 
     # ===================================
-    # Primeras trazas LIGHT
+    # Primeras trazas DARK (Con vs Sin Offset)
     # ===================================
 
-    plt.figure(figsize=(12, 6))
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(18, 6))
+
+    # izquierda: Con offset
     for i in range(n_trazas):
-        plt.plot(light_dataset[i], alpha=0.7)
+        ax1.plot(dark_dataset[i], alpha=0.7)
+    ax1.set_title(f"Primeras {n_trazas} trazas DARK (Con offset)")
+    ax1.set_xlabel("Muestras")
+    ax1.set_ylabel("Vout (V)")
+    ax1.grid(color='gray', linestyle='--', linewidth=0.2)
+    ax1.yaxis.set_major_locator(ticker.MultipleLocator(0.0025))
+    ax1.xaxis.set_major_locator(ticker.MultipleLocator(600))
 
-    plt.title(f"Primeras {n_trazas} trazas LIGHT (con offset)")
-    plt.xlabel("Muestras")
-    plt.ylabel("Vout (V)")
-    plt.grid(color='gray', linestyle='--', linewidth=0.2)
-    ax = plt.gca()
-    ax.yaxis.set_major_locator(ticker.MultipleLocator(0.0025))
-    ax.xaxis.set_major_locator(ticker.MultipleLocator(600))
-    #guardar_figura("estudio_primeras_trazas_light")
-    plt.show()
-
-    # ===================================
-    # Primeras trazas DARK
-    # ===================================
-
-    plt.figure(figsize=(12, 6))
-
+    # derecha: Sin offset
     for i in range(n_trazas):
-        plt.plot(dark_dataset[i], alpha=0.7)
+        ax2.plot(trazas_dark_sin_offset[i], alpha=0.7)
+    ax2.set_title(f"Primeras {n_trazas} trazas DARK (Sin offset)")
+    ax2.set_xlabel("Muestras")
+    ax2.set_ylabel("Vout (V)")
+    ax2.grid(color='gray', linestyle='--', linewidth=0.2)
+    ax2.yaxis.set_major_locator(ticker.MultipleLocator(0.0025))
+    ax2.xaxis.set_major_locator(ticker.MultipleLocator(600))
 
-    plt.title(f"Primeras {n_trazas} trazas DARK (con offset)")
-    plt.xlabel("Muestras")
-    plt.ylabel("Vout (V)")
-    plt.grid(color='gray', linestyle='--', linewidth=0.2)
-
-    ax = plt.gca()
-    ax.yaxis.set_major_locator(ticker.MultipleLocator(0.0025))
-    ax.xaxis.set_major_locator(ticker.MultipleLocator(600))
-
-    #guardar_figura("estudio_primeras_trazas_dark")
+    plt.tight_layout()
+    #guardar_figura("comparativa_trazas_dark")
     plt.show()
 
     # ===================================
-    # Pulsos medios
+    # Subplots de Pulsos Medios (con vs sin offset)
     # ===================================
 
     mean_light = np.mean(light_dataset, axis=0)
     mean_dark = np.mean(dark_dataset, axis=0)
 
-    plt.figure(figsize=(12, 6))
+    mean_light_sin_offset = np.mean(trazas_light_sin_offset, axis=0)
+    mean_dark_sin_offset = np.mean(trazas_dark_sin_offset, axis=0)
 
-    plt.plot(mean_light, label="Light", color="orange")
-    plt.plot(mean_dark, label="Background", color="black")
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(18, 6))
 
-    plt.axvline(x=ventana_ini, color='green', linestyle='--',
-        label='Ventana inicio')
-    plt.axvline(x=ventana_fin, color='red', linestyle='--',
-        label='Ventana fin')
-    plt.title("Pulso medio con ventana de interés")
-    plt.ylabel("Vout (V)")
-    plt.xlabel("Muestras")
+    # izquierda: Con offset
+    ax1.plot(mean_light, label="Light (Con offset)", color="orange")
+    ax1.plot(mean_dark, label="Background (Con offset)", color="black")
+    ax1.axvline(x=ventana_ini, color='green', linestyle='--', label='Ventana inicio')
+    ax1.axvline(x=ventana_fin, color='red', linestyle='--', label='Ventana fin')
+    ax1.set_title("Pulso medio CON offset")
+    ax1.set_ylabel("Vout (V)")
+    ax1.set_xlabel("Muestras")
+    ax1.grid(color='gray', linestyle='--', linewidth=0.2)
+    ax1.yaxis.set_major_locator(ticker.MultipleLocator(0.0025))
+    ax1.xaxis.set_major_locator(ticker.MultipleLocator(600))
+    ax1.legend()
 
-    plt.grid(color='gray', linestyle='--', linewidth=0.2)
+    # derecha: Sin offset
+    ax2.plot(mean_light_sin_offset, label="Light (Sin offset)", color="orange")
+    ax2.plot(mean_dark_sin_offset, label="Background (Sin offset)", color="black")
+    ax2.axvline(x=ventana_ini, color='green', linestyle='--', label='Ventana inicio')
+    ax2.axvline(x=ventana_fin, color='red', linestyle='--', label='Ventana fin')
+    ax2.set_title("Pulso medio SIN offset (Baseline corregido)")
+    ax2.set_ylabel("Vout (V)")
+    ax2.set_xlabel("Muestras")
+    ax2.grid(color='gray', linestyle='--', linewidth=0.2)
+    ax2.yaxis.set_major_locator(ticker.MultipleLocator(0.0025))
+    ax2.xaxis.set_major_locator(ticker.MultipleLocator(600))
+    ax2.legend()
 
-    ax = plt.gca()
-    ax.yaxis.set_major_locator(ticker.MultipleLocator(0.0025))
-    ax.xaxis.set_major_locator(ticker.MultipleLocator(600))
-
-    plt.legend()
+    plt.tight_layout()
     #guardar_figura("estudio_pulso_medio_ventana")
     plt.show()
-
+    
+    return trazas_light_sin_offset, trazas_dark_sin_offset
 
 def seleccionar_ventana_muestras(LIGHT_PULSES, DARK_PULSES, n_samples, inicio, fin):
     """
-    OBJ: Recorta cada traza en la ventana fija [inicio:fin] y elimina
-        el offset de voltaje usando el baseline previo a la ventana.
+    OBJ: A partir de las trazas sin offset, se selecciona una ventana de muestras.
     PARAMS:
         n_samples  : (int)Número de muestras a recortar.
         inicio  :  (int)Índice de inicio de la ventana (incluido).
@@ -392,30 +442,17 @@ def seleccionar_ventana_muestras(LIGHT_PULSES, DARK_PULSES, n_samples, inicio, f
 
     trazas_light = []
     trazas_dark = []
-    trazas_light_scatter = []
-    trazas_dark_scatter = []
     trazas_light_test = []
     trazas_dark_test = []
 
-    for traza in LIGHT_PULSES[:10]: #4700
-        offset = np.mean(traza[:1000]) if inicio > 0 else 0.0 #se puede modificar el limite hasta 1
-        trazas_light_scatter.append(traza[1000:5000] - offset)
-    for traza in DARK_PULSES[:4700]:
-        offset = np.mean(traza[:1000]) if inicio > 0 else 0.0
-        trazas_dark_scatter.append(traza[1000:5000] - offset)
-
     for traza in LIGHT_PULSES[:n_samples]:
-        offset = np.mean(traza[:inicio]) if inicio > 0 else 0.0
-        trazas_light.append(traza[inicio:fin] - offset)
+        trazas_light.append(traza[inicio:fin])
     for traza in DARK_PULSES[:n_samples]:
-        offset = np.mean(traza[:inicio]) if inicio > 0 else 0.0
-        trazas_dark.append(traza[inicio:fin] - offset)
+        trazas_dark.append(traza[inicio:fin])
     for traza in LIGHT_PULSES[n_samples:]:
-        offset = np.mean(traza[:inicio]) if inicio > 0 else 0.0
-        trazas_light_test.append(traza[inicio:fin] - offset)
+        trazas_light_test.append(traza[inicio:fin])
     for traza in DARK_PULSES[n_samples:]:
-        offset = np.mean(traza[:inicio]) if inicio > 0 else 0.0
-        trazas_dark_test.append(traza[inicio:fin] - offset)
+        trazas_dark_test.append(traza[inicio:fin])
 
     input_len = fin - inicio
     print(f"Ventana seleccionada: [{inicio}:{fin}]")
@@ -423,40 +460,62 @@ def seleccionar_ventana_muestras(LIGHT_PULSES, DARK_PULSES, n_samples, inicio, f
           f"({input_len / 50:.1f} µs a 50 MHz)")
     
     # ===================================
-    # Scatter plots
+    # Primeras trazas LIGHT recortadas
     # ===================================
+    # separación dinámica de marcas del eje X
+    step_ticks = max(1, input_len // 5)
 
-    X_all = np.vstack([trazas_light_scatter, trazas_dark_scatter])   # (N+M, 1200)
+    plt.figure(figsize=(12, 6))
+    for i in range(n_samples):
+        plt.plot(trazas_light[i], alpha=0.7)
 
-    pca  = PCA(n_components=2)
-    X_2d = pca.fit_transform(X_all)          # (N+M, 2)
-
-    varianza = pca.explained_variance_ratio_
-
-    fig, ax = plt.subplots(figsize=(7, 6))
-
-    ax.scatter(X_2d[:len(trazas_light_scatter), 0], X_2d[:len(trazas_light_scatter), 1],
-               c='orange', alpha=0.3,  s=12, label='Light', zorder=3)
-    ax.scatter(X_2d[len(trazas_light_scatter):, 0], X_2d[len(trazas_light_scatter):, 1],
-               c='black',  alpha=0.15, s=12, label='Dark',  zorder=3)
-
-    ax.set_xlabel(f'PC1 ({varianza[0]*100:.1f}%)')
-    ax.set_ylabel(f'PC2 ({varianza[1]*100:.1f}%)')
-    ax.set_title('PCA sobre pulsos iniciales')
-    ax.legend()
-
-    ax.xaxis.set_major_locator(ticker.MultipleLocator(2))
-    ax.yaxis.set_major_locator(ticker.MultipleLocator(1))
-    ax.grid(which='major', color='gray', linestyle='--', linewidth=0.5, zorder=0)
-    ax.grid(which='minor', color='gray', linestyle=':',  linewidth=0.3, zorder=0)
-
-    plt.tight_layout()
-    #guardar_figura("pca_trazas_crudas")
+    plt.title(f"Primeras {n_samples} trazas LIGHT (en ventana)")
+    plt.xlabel("Muestras (relativas a la ventana)")
+    plt.ylabel("Vout (V)")
+    plt.grid(color='gray', linestyle='--', linewidth=0.2)
+    ax = plt.gca()
+    ax.yaxis.set_major_locator(ticker.MultipleLocator(25))
+    ax.xaxis.set_major_locator(ticker.MultipleLocator(step_ticks))
     plt.show()
 
-    print(f"Varianza explicada — PC1: {varianza[0]*100:.1f}%  "
-          f"PC2: {varianza[1]*100:.1f}%  "
-          f"Total: {sum(varianza)*100:.1f}%")
+    # ===================================
+    # Primeras trazas DARK recortadas
+    # ===================================
+
+    plt.figure(figsize=(12, 6))
+    for i in range(n_samples):
+        plt.plot(trazas_dark[i], alpha=0.7)
+
+    plt.title(f"Primeras {n_samples} trazas DARK (en ventana)")
+    plt.xlabel("Muestras (relativas a la ventana)")
+    plt.ylabel("Vout (V)")
+    plt.grid(color='gray', linestyle='--', linewidth=0.2)
+
+    ax = plt.gca()
+    ax.yaxis.set_major_locator(ticker.MultipleLocator(0.0025))
+    ax.xaxis.set_major_locator(ticker.MultipleLocator(step_ticks))
+    plt.show()
+
+    # ===================================
+    # Pulsos medios
+    # ===================================
+
+    mean_light = np.mean(trazas_light, axis=0)
+    mean_dark = np.mean(trazas_dark, axis=0)
+
+    plt.figure(figsize=(12, 6))
+    plt.plot(mean_light, label="Light (en ventana)", color="orange")
+    plt.plot(mean_dark, label="Background (en ventana)", color="black")
+
+    plt.title("Pulso medio recortado en la ventana de interés")
+    plt.ylabel("Vout (V)")
+    plt.xlabel("Muestras (relativas a la ventana)")
+    plt.grid(color='gray', linestyle='--', linewidth=0.2)
+
+    ax = plt.gca()
+    ax.xaxis.set_major_locator(ticker.MultipleLocator(step_ticks))
+    plt.legend()
+    plt.show()
 
     return np.array(trazas_light), np.array(trazas_dark), np.array(trazas_light_test), np.array(trazas_dark_test)
 
@@ -899,19 +958,6 @@ def funciones_perdida_autoencoders(history_light, history_dark, history_combined
     #guardar_figura("autoencoders_curvas_perdida")
     plt.show()
 
-    """ Conclusiones de las gráficas:
-
-    En la primera gráfica se ve que la función de pérdida para los datos de validación es bastante pequeño Este primer modelo se entrenó SOLO con pulsos Light, lo que nos está diciendo es que está reconstruyendo bastante bien los pulsos de luz. No parece que haya overfitting.
-
-    En la segunda gráfica, tenemos un comportamiento bastante similar a la primera. El segundo modelo de autoencoder ha sido entrenado solo conk pulsos DARK, es decir, este modelo está reconstruyedo con bastante precisión los pulsos DARK. Destaca que la función de pérdida de validación cae más rápido que la 'train loss'. Esto puede ser porque el conjunto de validación tiene una distribución más homogenea que el del conjunto de entrenamiento simplemente por azar en la división. Hay que tener en cuenta que el conjunto de pulsos dark tiene más dispersión en los valores que los light.
-
-    Por último, en la tercera gráfica, vemos que las funciones de pérdida para entrenamiento y validación NO convergen; además el MAE es mayor que los anteriores modelos.
-    
-    curvas_perdida_autoencoder_v1.png
-
-    Repetiremos el experimento subiendo el nº de épocas a 35 y observamos que las funciones se estabilizan.
-
-    **Sin embargo, por cada iteración las funciones de perdida pueden cambiar. Solución realizar al menos 3 iteraciones y quedarme con la media"""
 # ============================================================
 # EVALUACIÓN FINAL: ERROR DE RECONSTRUCCIÓN POR CLASE
 # ============================================================
