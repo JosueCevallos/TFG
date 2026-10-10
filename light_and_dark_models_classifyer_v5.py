@@ -422,8 +422,7 @@ def estudio_datasets(light_dataset, dark_dataset,n_trazas,ventana_ini,ventana_fi
 
 def seleccionar_ventana_muestras(LIGHT_PULSES, DARK_PULSES, n_samples, inicio, fin):
     """
-    OBJ: Recorta cada traza en la ventana fija [inicio:fin] y elimina
-        el offset de voltaje usando el baseline previo a la ventana.
+    OBJ: A partir de las trazas sin offset, se selecciona una ventana de muestras.
     PARAMS:
         n_samples  : (int)Número de muestras a recortar.
         inicio  :  (int)Índice de inicio de la ventana (incluido).
@@ -443,30 +442,17 @@ def seleccionar_ventana_muestras(LIGHT_PULSES, DARK_PULSES, n_samples, inicio, f
 
     trazas_light = []
     trazas_dark = []
-    trazas_light_scatter = []
-    trazas_dark_scatter = []
     trazas_light_test = []
     trazas_dark_test = []
 
-    for traza in LIGHT_PULSES[:10]: #4700
-        offset = np.mean(traza[:1000]) if inicio > 0 else 0.0 #se puede modificar el limite hasta 1
-        trazas_light_scatter.append(traza[1000:5000] - offset)
-    for traza in DARK_PULSES[:4700]:
-        offset = np.mean(traza[:1000]) if inicio > 0 else 0.0
-        trazas_dark_scatter.append(traza[1000:5000] - offset)
-
     for traza in LIGHT_PULSES[:n_samples]:
-        offset = np.mean(traza[:inicio]) if inicio > 0 else 0.0
-        trazas_light.append(traza[inicio:fin] - offset)
+        trazas_light.append(traza[inicio:fin])
     for traza in DARK_PULSES[:n_samples]:
-        offset = np.mean(traza[:inicio]) if inicio > 0 else 0.0
-        trazas_dark.append(traza[inicio:fin] - offset)
+        trazas_dark.append(traza[inicio:fin])
     for traza in LIGHT_PULSES[n_samples:]:
-        offset = np.mean(traza[:inicio]) if inicio > 0 else 0.0
-        trazas_light_test.append(traza[inicio:fin] - offset)
+        trazas_light_test.append(traza[inicio:fin])
     for traza in DARK_PULSES[n_samples:]:
-        offset = np.mean(traza[:inicio]) if inicio > 0 else 0.0
-        trazas_dark_test.append(traza[inicio:fin] - offset)
+        trazas_dark_test.append(traza[inicio:fin])
 
     input_len = fin - inicio
     print(f"Ventana seleccionada: [{inicio}:{fin}]")
@@ -474,40 +460,62 @@ def seleccionar_ventana_muestras(LIGHT_PULSES, DARK_PULSES, n_samples, inicio, f
           f"({input_len / 50:.1f} µs a 50 MHz)")
     
     # ===================================
-    # Scatter plots
+    # Primeras trazas LIGHT recortadas
     # ===================================
+    # separación dinámica de marcas del eje X
+    step_ticks = max(1, input_len // 5)
 
-    X_all = np.vstack([trazas_light_scatter, trazas_dark_scatter])   # (N+M, 1200)
+    plt.figure(figsize=(12, 6))
+    for i in range(n_samples):
+        plt.plot(trazas_light[i], alpha=0.7)
 
-    pca  = PCA(n_components=2)
-    X_2d = pca.fit_transform(X_all)          # (N+M, 2)
-
-    varianza = pca.explained_variance_ratio_
-
-    fig, ax = plt.subplots(figsize=(7, 6))
-
-    ax.scatter(X_2d[:len(trazas_light_scatter), 0], X_2d[:len(trazas_light_scatter), 1],
-               c='orange', alpha=0.3,  s=12, label='Light', zorder=3)
-    ax.scatter(X_2d[len(trazas_light_scatter):, 0], X_2d[len(trazas_light_scatter):, 1],
-               c='black',  alpha=0.15, s=12, label='Dark',  zorder=3)
-
-    ax.set_xlabel(f'PC1 ({varianza[0]*100:.1f}%)')
-    ax.set_ylabel(f'PC2 ({varianza[1]*100:.1f}%)')
-    ax.set_title('PCA sobre pulsos iniciales')
-    ax.legend()
-
-    ax.xaxis.set_major_locator(ticker.MultipleLocator(2))
-    ax.yaxis.set_major_locator(ticker.MultipleLocator(1))
-    ax.grid(which='major', color='gray', linestyle='--', linewidth=0.5, zorder=0)
-    ax.grid(which='minor', color='gray', linestyle=':',  linewidth=0.3, zorder=0)
-
-    plt.tight_layout()
-    #guardar_figura("pca_trazas_crudas")
+    plt.title(f"Primeras {n_samples} trazas LIGHT (en ventana)")
+    plt.xlabel("Muestras (relativas a la ventana)")
+    plt.ylabel("Vout (V)")
+    plt.grid(color='gray', linestyle='--', linewidth=0.2)
+    ax = plt.gca()
+    ax.yaxis.set_major_locator(ticker.MultipleLocator(25))
+    ax.xaxis.set_major_locator(ticker.MultipleLocator(step_ticks))
     plt.show()
 
-    print(f"Varianza explicada — PC1: {varianza[0]*100:.1f}%  "
-          f"PC2: {varianza[1]*100:.1f}%  "
-          f"Total: {sum(varianza)*100:.1f}%")
+    # ===================================
+    # Primeras trazas DARK recortadas
+    # ===================================
+
+    plt.figure(figsize=(12, 6))
+    for i in range(n_samples):
+        plt.plot(trazas_dark[i], alpha=0.7)
+
+    plt.title(f"Primeras {n_samples} trazas DARK (en ventana)")
+    plt.xlabel("Muestras (relativas a la ventana)")
+    plt.ylabel("Vout (V)")
+    plt.grid(color='gray', linestyle='--', linewidth=0.2)
+
+    ax = plt.gca()
+    ax.yaxis.set_major_locator(ticker.MultipleLocator(0.0025))
+    ax.xaxis.set_major_locator(ticker.MultipleLocator(step_ticks))
+    plt.show()
+
+    # ===================================
+    # Pulsos medios
+    # ===================================
+
+    mean_light = np.mean(trazas_light, axis=0)
+    mean_dark = np.mean(trazas_dark, axis=0)
+
+    plt.figure(figsize=(12, 6))
+    plt.plot(mean_light, label="Light (en ventana)", color="orange")
+    plt.plot(mean_dark, label="Background (en ventana)", color="black")
+
+    plt.title("Pulso medio recortado en la ventana de interés")
+    plt.ylabel("Vout (V)")
+    plt.xlabel("Muestras (relativas a la ventana)")
+    plt.grid(color='gray', linestyle='--', linewidth=0.2)
+
+    ax = plt.gca()
+    ax.xaxis.set_major_locator(ticker.MultipleLocator(step_ticks))
+    plt.legend()
+    plt.show()
 
     return np.array(trazas_light), np.array(trazas_dark), np.array(trazas_light_test), np.array(trazas_dark_test)
 
@@ -950,19 +958,6 @@ def funciones_perdida_autoencoders(history_light, history_dark, history_combined
     #guardar_figura("autoencoders_curvas_perdida")
     plt.show()
 
-    """ Conclusiones de las gráficas:
-
-    En la primera gráfica se ve que la función de pérdida para los datos de validación es bastante pequeño Este primer modelo se entrenó SOLO con pulsos Light, lo que nos está diciendo es que está reconstruyendo bastante bien los pulsos de luz. No parece que haya overfitting.
-
-    En la segunda gráfica, tenemos un comportamiento bastante similar a la primera. El segundo modelo de autoencoder ha sido entrenado solo conk pulsos DARK, es decir, este modelo está reconstruyedo con bastante precisión los pulsos DARK. Destaca que la función de pérdida de validación cae más rápido que la 'train loss'. Esto puede ser porque el conjunto de validación tiene una distribución más homogenea que el del conjunto de entrenamiento simplemente por azar en la división. Hay que tener en cuenta que el conjunto de pulsos dark tiene más dispersión en los valores que los light.
-
-    Por último, en la tercera gráfica, vemos que las funciones de pérdida para entrenamiento y validación NO convergen; además el MAE es mayor que los anteriores modelos.
-    
-    curvas_perdida_autoencoder_v1.png
-
-    Repetiremos el experimento subiendo el nº de épocas a 35 y observamos que las funciones se estabilizan.
-
-    **Sin embargo, por cada iteración las funciones de perdida pueden cambiar. Solución realizar al menos 3 iteraciones y quedarme con la media"""
 # ============================================================
 # EVALUACIÓN FINAL: ERROR DE RECONSTRUCCIÓN POR CLASE
 # ============================================================
