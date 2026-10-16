@@ -20,10 +20,15 @@ from scipy.stats import skew, kurtosis
 from sklearn.preprocessing import StandardScaler
 from sklearn.mixture import GaussianMixture
 from sklearn.preprocessing import StandardScaler
+from sklearn.preprocessing import MinMaxScaler
 
 from sklearn.ensemble import IsolationForest
 
 FIGURAS_DIR = "figuras_memoria"
+
+# Hiperparámetros de entrenamiento comunes a todos los modelos (CNNs y autoencoders)
+EPOCHS = 20
+BATCH_SIZE = 64
 
 def guardar_figura(nombre):
     """Guardar la figura actual"""
@@ -541,7 +546,13 @@ def entrenar_modelo_cnn(X_light,X_dark,X_light_test,X_dark_test):
                       dense_initial_units= 188, num_dense_layers= 3, dropout_rate= 0.18, learning_rate= 5.2e-4)
     print(f"Train: {X_train_cnn.shape} | Val: {X_val_cnn.shape}")
     #parametros escogidos segun el articulo, se pueden modificar para experimentar con la arquitectura de la red
-    history =model.fit(X_train_cnn, y_train_cnn,validation_data=(X_val_cnn, y_val_cnn),epochs=20,batch_size=99)
+    history =model.fit(
+        X_train_cnn, y_train_cnn,
+        validation_data=(X_val_cnn, y_val_cnn),
+        epochs=EPOCHS,
+        batch_size=BATCH_SIZE,
+        shuffle=True
+        )
     model.summary()
 
     print("Entrenamiento de la red CNN completado.")
@@ -846,14 +857,17 @@ def entrenar_autoencoder_light(X_light, X_dark):
 
     autoencoder_light, encoder_light = build_autoencoder(X_light.shape[1], latent_dim=16)
     autoencoder_light.summary()
-    X_light_norm, [X_dark_for_ae_light_test], mean_l, std_l = normalizar(X_light, [X_dark])
+    scaler = MinMaxScaler()
+    X_light_norm = scaler.fit_transform(X_light)[..., np.newaxis] #train
+    X_dark_norm = scaler.transform(X_dark)[..., np.newaxis] #test
+    #X_light_norm, [X_dark_for_ae_light_test], mean_l, std_l = normalizar(X_light, [X_dark])
     X_light_train, X_light_val = train_test_split(X_light_norm, test_size=0.2, random_state=42)
     print(f"Train light: {X_light_train.shape} | Val light: {X_light_val.shape}")
     history_light = autoencoder_light.fit(
         X_light_train, X_light_train,
         validation_data=(X_light_val, X_light_val),
-        epochs=20,
-        batch_size=99,
+        epochs=EPOCHS,
+        batch_size=BATCH_SIZE,
         shuffle=True
     )
     print("Fin entrenamiento Autoencoder Light")
@@ -862,21 +876,23 @@ def entrenar_autoencoder_light(X_light, X_dark):
             "history": history_light,
             "X_train": X_light_train,
             "X_val": X_light_val,
-            "X_test": X_dark_for_ae_light_test,
-            "mean": mean_l,
-            "std": std_l}
+            "X_test": X_dark_norm
+            }
 
 def entrenar_autoencoder_dark(X_light, X_dark):
     autoencoder_dark, encoder_dark = build_autoencoder(X_light.shape[1], latent_dim=16)
     autoencoder_dark.summary()
-    X_dark_norm, [X_light_for_ae_dark_test], mean_d, std_d = normalizar(X_dark, [X_light])
+    scaler = MinMaxScaler()
+    X_dark_norm = scaler.fit_transform(X_dark)[..., np.newaxis] #train 
+    X_light_norm = scaler.transform(X_light)[..., np.newaxis] #test
+    #X_dark_norm, [X_light_for_ae_dark_test], mean_d, std_d = normalizar(X_dark, [X_light])
     X_dark_train, X_dark_val = train_test_split(X_dark_norm, test_size=0.2, random_state=42)
     print(f"Train dark: {X_dark_train.shape} | Val dark: {X_dark_val.shape}")
     history_dark = autoencoder_dark.fit(
         X_dark_train, X_dark_train,
         validation_data=(X_dark_val, X_dark_val),
-        epochs=20,
-        batch_size=99,
+        epochs=EPOCHS,
+        batch_size=BATCH_SIZE,
         shuffle=True
     )
     print("Fin entrenamiento Autoencoder Dark")
@@ -885,9 +901,8 @@ def entrenar_autoencoder_dark(X_light, X_dark):
             "history": history_dark,
             "X_train": X_dark_train,
             "X_val": X_dark_val,
-            "X_test": X_light_for_ae_dark_test,
-            "mean": mean_d,
-            "std": std_d}
+            "X_test": X_light_norm
+            }
 
 def entrenar_autoencoder_combined(X_light, X_dark, X_light_test, X_dark_test):
     
@@ -897,14 +912,18 @@ def entrenar_autoencoder_combined(X_light, X_dark, X_light_test, X_dark_test):
         X_light = X_light[:mitad]
         X_dark  =  X_dark[:mitad]"""
     X_combined = np.concatenate([X_light, X_dark], axis=0)
-    X_combined_norm, [X_light_for_combined_test, X_dark_for_combined_test], mean_b, std_b = normalizar(X_combined, [X_light_test, X_dark_test])
+    X_combined_test = np.concatenate([X_light_test, X_dark_test], axis=0)
+    scaler = MinMaxScaler()
+    X_combined_norm = scaler.fit_transform(X_combined)[..., np.newaxis]
+    X_combined_test_norm = scaler.transform(X_combined_test)[..., np.newaxis]
+    #X_combined_norm, [X_light_for_combined_test, X_dark_for_combined_test], mean_b, std_b = normalizar(X_combined, [X_light_test, X_dark_test])
     X_combined_train, X_combined_val = train_test_split(X_combined_norm, test_size=0.2, random_state=42)
     print(f"Train combined: {X_combined_train.shape} | Val combined: {X_combined_val.shape}")
     history_combined = autoencoder_combined.fit(
         X_combined_train, X_combined_train,
         validation_data=(X_combined_val, X_combined_val),
-        epochs=20,
-        batch_size=99,
+        epochs=EPOCHS,
+        batch_size=BATCH_SIZE,
         shuffle=True
     )
     print("Fin entrenamiento Autoencoder Light + Dark")
@@ -913,9 +932,8 @@ def entrenar_autoencoder_combined(X_light, X_dark, X_light_test, X_dark_test):
             "history": history_combined,
             "X_train": X_combined_train,
             "X_val": X_combined_val,
-            "X_test": [X_light_for_combined_test, X_dark_for_combined_test],
-            "mean": mean_b,
-            "std": std_b}
+            "X_test": X_combined_test_norm
+            }
 
 def evaluar_autoencoders(resultados):
 
@@ -972,8 +990,8 @@ def calcula_error_reconstruccion_autoencoders(resultados):
 
     # --- Autoencoder ambos pulsos (normalizamos pulsos light y dark)
     #X_light_for_both = ((X_light - mean_b) / std_b)[..., np.newaxis]
-    err_both_on_light, X_light_pred_onBoth = error_reconstruccion(resultados["combined"]["autoencoder"], resultados["combined"]["X_test"][0])
-    err_both_on_dark,  X_dark_pred_onBoth  = error_reconstruccion(resultados["combined"]["autoencoder"], resultados["combined"]["X_test"][1]) #pulsos dark normalizados obtenidos de la normalizacion de los pulsos light
+    err_both_on_light, X_light_pred_onBoth = error_reconstruccion(resultados["combined"]["autoencoder"], resultados["combined"]["X_val"])
+    err_both_on_dark,  X_dark_pred_onBoth  = error_reconstruccion(resultados["combined"]["autoencoder"], resultados["combined"]["X_test"]) #conjunto de test combinado normalizado
 
     # Distribuciones de error
     fig, axes = plt.subplots(1, 3, figsize=(16, 4))
@@ -1133,8 +1151,8 @@ def visualizar_scatterplots_autoencoders(resultados):
 
     scatter_latente(
         resultados["combined"]["encoder"],
-        resultados["combined"]["X_test"][0],
-        resultados["combined"]["X_test"][1],
+        resultados["combined"]["X_train"],
+        resultados["combined"]["X_test"],
         "Espacio latente — Entrenado con Light + Dark",
         "scatter_latente_combinado"
     )
@@ -1906,8 +1924,8 @@ def entrenar_cnn_regresion(X_light, X_dark):
     history_reg = cnn_reg.fit(
         X_l_train, y_l_train,
         validation_data=(X_l_val, y_l_val),
-        epochs=20,
-        batch_size=99,
+        epochs=EPOCHS,
+        batch_size=BATCH_SIZE,
         shuffle=True
     )
 
