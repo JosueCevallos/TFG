@@ -26,9 +26,20 @@ from sklearn.ensemble import IsolationForest
 
 FIGURAS_DIR = "figuras_memoria"
 
-# Hiperparámetros de entrenamiento comunes a todos los modelos (CNNs y autoencoders)
+# Hiperparámetros de entrenamiento comunes
 EPOCHS = 20
 BATCH_SIZE = 64
+LATENT_DIM = 16
+
+# Hiperparámetros de diseño comunes a la CNN binaria y a la CNN de regresión
+CNN_NUM_CONV_LAYERS = 6
+CNN_NUM_FILTERS = 45
+CNN_KERNEL_SIZE = 5
+CNN_DENSE_INITIAL_UNITS = 188
+CNN_NUM_DENSE_LAYERS = 3
+CNN_DROPOUT_RATE = 0.18
+CNN_LEARNING_RATE = 5.2e-4
+#CNN Hiperparámetros
 
 def guardar_figura(nombre):
     """Guardar la figura actual"""
@@ -542,8 +553,8 @@ def entrenar_modelo_cnn(X_light,X_dark,X_light_test,X_dark_test):
     print("\n[Entrenamiento CNN Binaria]")
 
     X_train_cnn,X_val_cnn,X_test_cnn,y_train_cnn,y_val_cnn,y_test_cnn = preparar_datos_cnn_binaria(X_light, X_dark, X_light_test, X_dark_test)
-    model = build_cnn(input_shape= X_train_cnn.shape[1:],num_conv_layers= 6,num_filters= 45,kernel_size= 5,
-                      dense_initial_units= 188, num_dense_layers= 3, dropout_rate= 0.18, learning_rate= 5.2e-4)
+    model = build_cnn(input_shape= X_train_cnn.shape[1:],num_conv_layers= CNN_NUM_CONV_LAYERS,num_filters= CNN_NUM_FILTERS,kernel_size= CNN_KERNEL_SIZE,
+                      dense_initial_units= CNN_DENSE_INITIAL_UNITS, num_dense_layers= CNN_NUM_DENSE_LAYERS, dropout_rate= CNN_DROPOUT_RATE, learning_rate= CNN_LEARNING_RATE)
     print(f"Train: {X_train_cnn.shape} | Val: {X_val_cnn.shape}")
     #parametros escogidos segun el articulo, se pueden modificar para experimentar con la arquitectura de la red
     history =model.fit(
@@ -624,7 +635,6 @@ def preparar_datos_cnn_binaria(X_light_cnn, X_dark_cnn, X_light_cnn_test,
     return (X_train,X_val,X_test,y_train,y_val,y_test)
 
 def build_cnn(input_shape, num_conv_layers, num_filters, kernel_size, dense_initial_units, 
-              
               num_dense_layers, dropout_rate, learning_rate):
 
     model = models.Sequential()
@@ -855,7 +865,7 @@ def entrenar_autoencoders(X_light, X_dark, X_light_test, X_dark_test):
 
 def entrenar_autoencoder_light(X_light, X_dark):
 
-    autoencoder_light, encoder_light = build_autoencoder(X_light.shape[1], latent_dim=16)
+    autoencoder_light, encoder_light = build_autoencoder(X_light.shape[1], latent_dim=LATENT_DIM)
     autoencoder_light.summary()
     scaler = MinMaxScaler()
     X_light_norm = scaler.fit_transform(X_light)[..., np.newaxis] #train
@@ -880,7 +890,7 @@ def entrenar_autoencoder_light(X_light, X_dark):
             }
 
 def entrenar_autoencoder_dark(X_light, X_dark):
-    autoencoder_dark, encoder_dark = build_autoencoder(X_light.shape[1], latent_dim=16)
+    autoencoder_dark, encoder_dark = build_autoencoder(X_light.shape[1], latent_dim=LATENT_DIM)
     autoencoder_dark.summary()
     scaler = MinMaxScaler()
     X_dark_norm = scaler.fit_transform(X_dark)[..., np.newaxis] #train 
@@ -906,7 +916,7 @@ def entrenar_autoencoder_dark(X_light, X_dark):
 
 def entrenar_autoencoder_combined(X_light, X_dark, X_light_test, X_dark_test):
     
-    autoencoder_combined, encoder_combined = build_autoencoder(X_light.shape[1], latent_dim=16)
+    autoencoder_combined, encoder_combined = build_autoencoder(X_light.shape[1], latent_dim=LATENT_DIM)
     autoencoder_combined.summary()
     """mitad = len(X_light) // 2 #dark tiene el mismo tamaño
         X_light = X_light[:mitad]
@@ -1911,13 +1921,13 @@ def entrenar_cnn_regresion(X_light, X_dark):
 
     cnn_reg = build_cnn_regresion(
         input_shape         = X_l_train.shape[1:],
-        num_conv_layers     = 6,
-        num_filters         = 45,
-        kernel_size         = 5,
-        dense_initial_units = 188,
-        num_dense_layers    = 3,
-        dropout_rate        = 0.18,
-        learning_rate       = 5.2e-4
+        num_conv_layers     = CNN_NUM_CONV_LAYERS,
+        num_filters         = CNN_NUM_FILTERS,
+        kernel_size         = CNN_KERNEL_SIZE,
+        dense_initial_units = CNN_DENSE_INITIAL_UNITS,
+        num_dense_layers    = CNN_NUM_DENSE_LAYERS,
+        dropout_rate        = CNN_DROPOUT_RATE,
+        learning_rate       = CNN_LEARNING_RATE
     )
     cnn_reg.summary()
 
