@@ -553,8 +553,7 @@ def entrenar_modelo_cnn(X_light,X_dark,X_light_test,X_dark_test):
     print("\n[Entrenamiento CNN Binaria]")
 
     X_train_cnn,X_val_cnn,X_test_cnn,y_train_cnn,y_val_cnn,y_test_cnn = preparar_datos_cnn_binaria(X_light, X_dark, X_light_test, X_dark_test)
-    model = build_cnn(input_shape= X_train_cnn.shape[1:],num_conv_layers= CNN_NUM_CONV_LAYERS,num_filters= CNN_NUM_FILTERS,kernel_size= CNN_KERNEL_SIZE,
-                      dense_initial_units= CNN_DENSE_INITIAL_UNITS, num_dense_layers= CNN_NUM_DENSE_LAYERS, dropout_rate= CNN_DROPOUT_RATE, learning_rate= CNN_LEARNING_RATE)
+    model = build_cnn(input_shape= X_train_cnn.shape[1:])
     print(f"Train: {X_train_cnn.shape} | Val: {X_val_cnn.shape}")
     #parametros escogidos segun el articulo, se pueden modificar para experimentar con la arquitectura de la red
     history =model.fit(
@@ -634,27 +633,26 @@ def preparar_datos_cnn_binaria(X_light_cnn, X_dark_cnn, X_light_cnn_test,
 
     return (X_train,X_val,X_test,y_train,y_val,y_test)
 
-def build_cnn(input_shape, num_conv_layers, num_filters, kernel_size, dense_initial_units, 
-              num_dense_layers, dropout_rate, learning_rate):
+def build_cnn(input_shape):
 
     model = models.Sequential()
 
     initializer = initializers.GlorotUniform()
 
     # Capas convolucionales
-    for i in range(num_conv_layers):
+    for i in range(CNN_NUM_CONV_LAYERS):
         if i == 0:
             model.add(layers.Conv1D(
-                filters=num_filters,
-                kernel_size=kernel_size,
+                filters=CNN_NUM_FILTERS,
+                kernel_size=CNN_KERNEL_SIZE,
                 activation='tanh',
                 kernel_initializer=initializer,
                 input_shape=input_shape
             ))
         else:
             model.add(layers.Conv1D(
-                filters=num_filters,
-                kernel_size=kernel_size,
+                filters=CNN_NUM_FILTERS,
+                kernel_size=CNN_KERNEL_SIZE,
                 activation='tanh',
                 kernel_initializer=initializer
             ))
@@ -664,14 +662,14 @@ def build_cnn(input_shape, num_conv_layers, num_filters, kernel_size, dense_init
     model.add(layers.Flatten())
 
     # Capas densas
-    units = dense_initial_units
-    for _ in range(num_dense_layers):
+    units = CNN_DENSE_INITIAL_UNITS
+    for _ in range(CNN_NUM_DENSE_LAYERS):
         model.add(layers.Dense(
             units,
             activation='relu',
             kernel_initializer=initializer
         ))
-        model.add(layers.Dropout(dropout_rate))
+        model.add(layers.Dropout(CNN_DROPOUT_RATE))
         units = units // 2
 
     # Salida binaria final
@@ -679,7 +677,7 @@ def build_cnn(input_shape, num_conv_layers, num_filters, kernel_size, dense_init
 
     # Compilación
     model.compile(
-        optimizer=tf.keras.optimizers.Adam(learning_rate=learning_rate),
+        optimizer=tf.keras.optimizers.Adam(learning_rate=CNN_LEARNING_RATE),
         loss='binary_crossentropy',
         metrics=['accuracy']
     )
@@ -765,7 +763,7 @@ def evaluar_cnn(model, history, X_test_cnn, y_test_cnn):
 
     return y_proba, y_pred, roc_auc_cnn, fpr_cnn, tpr_cnn
 # ARQUITECTURA COMÚN DE LOS AUTOENCODERS
-def build_autoencoder(input_len, latent_dim):
+def build_autoencoder(input_len):
     """
     OBJ:
         Autoencoder convolucional 1D con adaptación automática de la
@@ -773,7 +771,6 @@ def build_autoencoder(input_len, latent_dim):
 
     PARAMS:
         input_len  : número de muestras por traza.
-        latent_dim : dimensión del espacio latente.
 
     RETURN:
         autoencoder, encoder
@@ -807,7 +804,7 @@ def build_autoencoder(input_len, latent_dim):
 
     x = layers.Flatten()(x)
 
-    bottleneck = layers.Dense(latent_dim,activation="relu",name="bottleneck")(x)
+    bottleneck = layers.Dense(LATENT_DIM,activation="relu",name="bottleneck")(x)
 
     # DECODER
 
@@ -865,7 +862,7 @@ def entrenar_autoencoders(X_light, X_dark, X_light_test, X_dark_test):
 
 def entrenar_autoencoder_light(X_light, X_dark):
 
-    autoencoder_light, encoder_light = build_autoencoder(X_light.shape[1], latent_dim=LATENT_DIM)
+    autoencoder_light, encoder_light = build_autoencoder(X_light.shape[1])
     autoencoder_light.summary()
     scaler = MinMaxScaler()
     X_light_norm = scaler.fit_transform(X_light)[..., np.newaxis] #train
@@ -890,7 +887,7 @@ def entrenar_autoencoder_light(X_light, X_dark):
             }
 
 def entrenar_autoencoder_dark(X_light, X_dark):
-    autoencoder_dark, encoder_dark = build_autoencoder(X_light.shape[1], latent_dim=LATENT_DIM)
+    autoencoder_dark, encoder_dark = build_autoencoder(X_light.shape[1])
     autoencoder_dark.summary()
     scaler = MinMaxScaler()
     X_dark_norm = scaler.fit_transform(X_dark)[..., np.newaxis] #train 
@@ -916,7 +913,7 @@ def entrenar_autoencoder_dark(X_light, X_dark):
 
 def entrenar_autoencoder_combined(X_light, X_dark, X_light_test, X_dark_test):
     
-    autoencoder_combined, encoder_combined = build_autoencoder(X_light.shape[1], latent_dim=LATENT_DIM)
+    autoencoder_combined, encoder_combined = build_autoencoder(X_light.shape[1])
     autoencoder_combined.summary()
     """mitad = len(X_light) // 2 #dark tiene el mismo tamaño
         X_light = X_light[:mitad]
