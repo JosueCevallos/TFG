@@ -28,13 +28,15 @@ FIGURAS_DIR = "figuras_memoria"
 
 # Hiperparámetros de entrenamiento comunes
 EPOCHS = 20
-BATCH_SIZE = 64
+BATCH_SIZE = 84
 LATENT_DIM = 16
 
 # Hiperparámetros de diseño comunes a la CNN binaria y a la CNN de regresión
+# Parametros escogidos segun el articulo, modificar para experimentos con la arquitectura de la red
+CNN_BATCH_SIZE = 64
 CNN_NUM_CONV_LAYERS = 6
 CNN_NUM_FILTERS = 45
-CNN_KERNEL_SIZE = 5
+CNN_KERNEL_SIZE = 12
 CNN_DENSE_INITIAL_UNITS = 188
 CNN_NUM_DENSE_LAYERS = 3
 CNN_DROPOUT_RATE = 0.18
