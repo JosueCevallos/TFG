@@ -549,30 +549,29 @@ def entrenar_modelo_cnn(X_light,X_dark,X_light_test,X_dark_test):
     RETURNS:
         model : (tf.keras.Model) Modelo CNN entrenado.
         history : (tf.keras.callbacks.History) Historial de entrenamiento.
-        X_test_cnn : (np.ndarray) Conjunto de test para evaluación.
-        y_test_cnn : (np.ndarray) Etiquetas de test para evaluación.
+        X_test : (np.ndarray) Conjunto de test para evaluación.
+        y_test : (np.ndarray) Etiquetas de test para evaluación.
     """
     print("\n[Entrenamiento CNN Binaria]")
 
-    X_train_cnn,X_val_cnn,X_test_cnn,y_train_cnn,y_val_cnn,y_test_cnn = preparar_datos_cnn_binaria(X_light, X_dark, X_light_test, X_dark_test)
-    model = build_cnn(input_shape= X_train_cnn.shape[1:])
-    print(f"Train: {X_train_cnn.shape} | Val: {X_val_cnn.shape}")
-    #parametros escogidos segun el articulo, se pueden modificar para experimentar con la arquitectura de la red
+    X_train, X_val, X_test, y_train, y_val, y_test = preparar_datos_cnn_binaria(X_light, X_dark, X_light_test, X_dark_test)
+    model = build_cnn(input_shape= X_train.shape[1:])
+    print(f"Train: {X_train.shape} | Val: {X_val.shape}")
     history =model.fit(
-        X_train_cnn, y_train_cnn,
-        validation_data=(X_val_cnn, y_val_cnn),
+        X_train, y_train,
+        validation_data=(X_val, y_val),
         epochs=EPOCHS,
-        batch_size=BATCH_SIZE,
+        batch_size=CNN_BATCH_SIZE,
         shuffle=True
         )
     model.summary()
 
     print("Entrenamiento de la red CNN completado.")
 
-    return model, history, X_test_cnn, y_test_cnn
+    return model, history, X_test, y_test
 
 def preparar_datos_cnn_binaria(X_light_cnn, X_dark_cnn, X_light_cnn_test,
-                    X_dark_cnn_test, test_size_val=0.2, random_state=42):
+                    X_dark_cnn_test, val_size=0.2, random_state=42):
     """
     OBJ:Preparar los conjuntos de entrenamiento,
         validación y test para la CNN binaria.
@@ -581,7 +580,7 @@ def preparar_datos_cnn_binaria(X_light_cnn, X_dark_cnn, X_light_cnn_test,
         X_dark_cnn : (np.ndarray)Pulsos DARK de entrenamiento.
         X_light_cnn_test : (np.ndarray)Pulsos LIGHT de test.
         X_dark_cnn_test : (np.ndarray)Pulsos DARK de test.
-        test_size_val : (float)Porcentaje destinado a validación.
+        val_size : (float)Porcentaje destinado a validación.
         random_state : (int)Semilla para reproducibilidad.
     RETURNS:
         X_train, X_val, X_test,
@@ -589,10 +588,10 @@ def preparar_datos_cnn_binaria(X_light_cnn, X_dark_cnn, X_light_cnn_test,
     """
 
     # Variables dependientes
-    y_light = np.ones(len(X_light_cnn))
-    y_dark = np.zeros(len(X_dark_cnn))
-    y_light_test = np.ones(len(X_light_cnn_test))
-    y_dark_test = np.zeros(len(X_dark_cnn_test))
+    y_light = np.zeros(len(X_light_cnn), dtype=int)
+    y_dark = np.ones(len(X_dark_cnn), dtype = int)
+    y_light_test = np.zeros(len(X_light_cnn_test), dtype=int)
+    y_dark_test = np.ones(len(X_dark_cnn_test), dtype=int)
 
     # Combinar conjuntos
     X = np.concatenate([X_light_cnn, X_dark_cnn], axis=0)
@@ -600,25 +599,33 @@ def preparar_datos_cnn_binaria(X_light_cnn, X_dark_cnn, X_light_cnn_test,
     y = np.concatenate([y_light, y_dark],axis=0)
     y_test = np.concatenate([y_light_test, y_dark_test],axis=0)
 
-    # Shuffle
-    indices = np.random.permutation(len(X))
-    X = X[indices]
-    y = y[indices]
+    #Normalización (pruebas)
+    scaler = MinMaxScaler()
+    X = scaler.fit_transform(X)[..., np.newaxis] #train
+    X_test = scaler.transform(X_test)[..., np.newaxis] #test
 
+    # Division y Shuffle
+    X_train, X_val, y_train, y_val = train_test_split(
+            X, y,
+            test_size=val_size,
+            stratify=y,
+            random_state=random_state)
+    
+    #Shuffle del conjunto de testing
     indices_test = np.random.permutation(len(X_test))
     X_test = X_test[indices_test]
     y_test = y_test[indices_test]
 
-    # Normalización (test con las estadísticas de train)
-    mean_train = np.mean(X)
-    std_train = np.std(X)
-    X = ((X - mean_train) / std_train)[..., np.newaxis]
-    X_test = ((X_test - mean_train) / std_train)[..., np.newaxis]
+    
+    #indices = np.random.permutation(len(X))
+    #X = X[indices]
+    #y = y[indices]
 
-    # Dividir conjunto Train / Validation
-    X_train, X_val, y_train, y_val = train_test_split(
-        X,y,test_size=test_size_val,stratify=y,
-        random_state=random_state)
+    # Normalización (test con las estadísticas de train)
+    #mean_train = np.mean(X)
+    #std_train = np.std(X)
+    #X = ((X - mean_train) / std_train)[..., np.newaxis]
+    #X_test = ((X_test - mean_train) / std_train)[..., np.newaxis]
 
     # Resumen
     print("\n===================================")
@@ -633,7 +640,7 @@ def preparar_datos_cnn_binaria(X_light_cnn, X_dark_cnn, X_light_cnn_test,
     print(f"y_val  : {y_val.shape}")
     print(f"y_test : {y_test.shape}")
 
-    return (X_train,X_val,X_test,y_train,y_val,y_test)
+    return (X_train, X_val, X_test, y_train, y_val, y_test)
 
 def build_cnn(input_shape):
 
@@ -703,24 +710,22 @@ def evaluar_cnn(model, history, X_test_cnn, y_test_cnn):
     print("\n")
 
     # Predicciones
-    y_proba = model.predict(X_test_cnn,verbose=0).flatten()
+    y_proba = model.predict(X_test_cnn, verbose=0).flatten()
     y_pred = (y_proba >= 0.5).astype(int)
-
     # Informe
-    print(classification_report(y_test_cnn,y_pred,target_names=["Dark", "Light"]))
+    print(classification_report(y_test_cnn,y_pred,target_names=["Light", "Dark"]))
 
     # Matriz de confusión
-    cm = confusion_matrix(y_test_cnn, y_pred)
+    cm = confusion_matrix(y_test_cnn.astype(int), y_pred)
 
     plt.figure(figsize=(5, 4))
-
     sns.heatmap(
         cm,
         annot=True,
         fmt="d",
         cmap="Blues",
-        xticklabels=["Dark", "Light"],
-        yticklabels=["Dark", "Light"]
+        xticklabels=["Light", "Dark"],
+        yticklabels=["Light", "Dark"]
     )
 
     plt.ylabel("Etiqueta real")
@@ -731,12 +736,10 @@ def evaluar_cnn(model, history, X_test_cnn, y_test_cnn):
     #guardar_figura("cnn_binaria_matriz_confusion")
     plt.show()
     print("\n")
-    # ROC
-    y_scores_anomalia = 1 - y_proba
-
+    # ROC (y_proba ya es P(Dark=1=anomalía), igual que y_test_cnn)
     fpr_cnn, tpr_cnn, thresholds = roc_curve(
-        1 - y_test_cnn,
-        y_scores_anomalia
+        y_test_cnn,
+        y_proba
     )
 
     roc_auc_cnn = auc(fpr_cnn, tpr_cnn)
