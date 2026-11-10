@@ -310,7 +310,8 @@ def estudio_datasets(light_dataset, dark_dataset,n_trazas,ventana_ini,ventana_fi
     # ===================================
     # Trazas LIGHT individuales en escala temporal (Con vs Sin Offset)
     # ===================================
-
+    #TESTING
+    """
     fig, axes = plt.subplots(n_trazas, 2, figsize=(18, 2 * n_trazas))
     if n_trazas == 1:
         axes = np.expand_dims(axes, axis=0)
@@ -393,11 +394,11 @@ def estudio_datasets(light_dataset, dark_dataset,n_trazas,ventana_ini,ventana_fi
     plt.tight_layout()
     #guardar_figura("comparativa_trazas_dark")
     plt.show()
-
+    """
     # ===================================
     # Subplots de Pulsos Medios (con vs sin offset)
     # ===================================
-
+    """
     mean_light = np.mean(light_dataset, axis=0)
     mean_dark = np.mean(dark_dataset, axis=0)
 
@@ -435,7 +436,7 @@ def estudio_datasets(light_dataset, dark_dataset,n_trazas,ventana_ini,ventana_fi
     plt.tight_layout()
     #guardar_figura("estudio_pulso_medio_ventana")
     plt.show()
-    
+    """
     return trazas_light_sin_offset, trazas_dark_sin_offset
 
 def seleccionar_ventana_muestras(LIGHT_PULSES, DARK_PULSES, n_samples, inicio, fin):
@@ -467,9 +468,9 @@ def seleccionar_ventana_muestras(LIGHT_PULSES, DARK_PULSES, n_samples, inicio, f
         trazas_light.append(traza[inicio:fin])
     for traza in DARK_PULSES[:n_samples]:
         trazas_dark.append(traza[inicio:fin])
-    for traza in LIGHT_PULSES[n_samples:]:
+    for traza in LIGHT_PULSES[n_samples:n_samples+500]: #SOLO PARA TESTING
         trazas_light_test.append(traza[inicio:fin])
-    for traza in DARK_PULSES[n_samples:]:
+    for traza in DARK_PULSES[n_samples:n_samples+500]: #SOLO PARA TESTING
         trazas_dark_test.append(traza[inicio:fin])
 
     input_len = fin - inicio
@@ -481,6 +482,9 @@ def seleccionar_ventana_muestras(LIGHT_PULSES, DARK_PULSES, n_samples, inicio, f
     # Primeras trazas LIGHT recortadas
     # ===================================
     # separación dinámica de marcas del eje X
+
+    #TESTING
+    """
     step_ticks = max(1, input_len // 5)
 
     plt.figure(figsize=(12, 6))
@@ -513,7 +517,7 @@ def seleccionar_ventana_muestras(LIGHT_PULSES, DARK_PULSES, n_samples, inicio, f
     ax.yaxis.set_major_locator(ticker.MultipleLocator(0.0025))
     ax.xaxis.set_major_locator(ticker.MultipleLocator(step_ticks))
     plt.show()
-
+    
     # ===================================
     # Pulsos medios
     # ===================================
@@ -534,7 +538,7 @@ def seleccionar_ventana_muestras(LIGHT_PULSES, DARK_PULSES, n_samples, inicio, f
     ax.xaxis.set_major_locator(ticker.MultipleLocator(step_ticks))
     plt.legend()
     plt.show()
-
+    """
     return np.array(trazas_light), np.array(trazas_dark), np.array(trazas_light_test), np.array(trazas_dark_test)
 
 def entrenar_modelo_cnn(X_light,X_dark,X_light_test,X_dark_test):
