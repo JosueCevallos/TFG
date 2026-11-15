@@ -848,7 +848,6 @@ def build_autoencoder(input_len):
 
     return autoencoder, encoder
 
-# BLOQUE FUNCIONES DE ENTRENAMIENTO PARA AUTOENCODER
 def entrenar_autoencoders(X_light, X_dark, X_light_test, X_dark_test):
     """
     OBJ: Entrena tres autoencoders: uno para pulsos LIGHT, otro para pulsos DARK y un tercero para ambos combinados.
@@ -1210,7 +1209,7 @@ def scatter_latente(encoder, X_light, X_dark, titulo, nombre_archivo):
     plt.show()
 
 # ==================================================
-# --- BLOQUE FUNCIONES DE ENTRENAMIENTO PARA GMM ---
+# === BLOQUE FUNCIONES DE ENTRENAMIENTO PARA GMM ===
 # ==================================================
  
 def normalizar_caracteristicas(F_train, F_test=None):
@@ -1233,9 +1232,6 @@ def normalizar_caracteristicas(F_train, F_test=None):
 
     return F_train_norm, F_test_norm, scaler
 
-# ==================================================
-#------------EXTRACCION DE CARACTERISTICAS ---------
-# ==================================================
 def extraer_caracteristicas(pulsos):
     """
     OBJ: Extraer un vector reducido de características para el GMM.
@@ -1313,7 +1309,6 @@ def comparar_bic(F_train, titulo, nombre_figura, max_componentes=10):
 
     return mejor_k
 
-
 def _entrenar_gmm_variante(F_train_norm, titulo, nombre_figura_bic):
     """Selecciona el nº de componentes vía BIC y entrena el GMM final de esa variante."""
     n_components = comparar_bic(F_train_norm, titulo, nombre_figura_bic)
@@ -1333,7 +1328,6 @@ def _entrenar_gmm_variante(F_train_norm, titulo, nombre_figura_bic):
     print(f"Iteraciones : {gmm.n_iter_}")
 
     return gmm
-
 
 def entrenar_gmm(X_light, X_dark):
     """
@@ -1401,13 +1395,11 @@ def entrenar_gmm(X_light, X_dark):
 
     return resultados
 
-
 def calcular_scores_gmm(gmm, F_light_norm, F_dark_norm):
     """Score de anomalía = log-verosimilitud negada (score alto = más anómalo)."""
     scores_light = -gmm.score_samples(F_light_norm)
     scores_dark  = -gmm.score_samples(F_dark_norm)
     return scores_light, scores_dark
-
 
 def evaluar_gmm(resultados):
     """
@@ -1681,7 +1673,6 @@ def fpr_en_tpr(fpr, tpr, tpr_objetivo):
     """
     return float(np.interp(tpr_objetivo, tpr, fpr))
 
-
 def tabla_operacion_modelos(modelos, tprs_objetivo=(0.95, 0.99)):
     """
     OBJ: Complementa el AUC (métrica agregada) con la FPR a puntos de
@@ -1723,7 +1714,6 @@ def tabla_operacion_modelos(modelos, tprs_objetivo=(0.95, 0.99)):
     print("0.99). Cuanto más bajo, mejor.")
 
     return filas
-
 
 def comparar_modelos(roc_auc_cnn, fpr_cnn, tpr_cnn,
                       errores_autoencoders,
@@ -1801,7 +1791,7 @@ def comparar_modelos(roc_auc_cnn, fpr_cnn, tpr_cnn,
     print("Comparación completada.")
 
 # ==================================================
-#------------ BLOQUE CNN DE REGRESION --------------
+# ============ BLOQUE CNN DE REGRESION =============
 # ==================================================
 def build_cnn_regresion(input_shape, num_conv_layers, num_filters,
                         kernel_size, dense_initial_units,
@@ -1958,7 +1948,6 @@ def entrenar_cnn_regresion(X_light, X_dark):
         "std_y": std_y
     }
 
-# EVALUACIÓN
 def evaluar_cnn_regresion(resultados_reg):
     """
     OBJ: Evaluar la CNN de regresión: curva de aprendizaje, distribución
@@ -2054,58 +2043,7 @@ def evaluar_cnn_regresion(resultados_reg):
 
     return err_reg_light, err_reg_dark, roc_auc_reg, fpr_reg, tpr_reg
 
+# ===========================================================
+# ====================== BLOQUE MAIN ========================
 
-# ===========================================================
-# ----------------------- BLOQUE MAIN -----------------------
-# ===========================================================
 main()
-
-"""División del conjunto de datos
-
-Incialmente trabajaremos con los 4722 pulsos. Sin embargo, para reducir la carga computacional durante el entrenamiento
-del modelo, se ha decidido seleccionar una ventana de muestras significativas. Para ello se ha calculado el pulso medio
-del conjunto de datos light y dark. Se observa que la media en ambos casos se centra en el margen de muestra de 1000 a 
-2000 muestras. Ajustando un poco más, se ha tomado como inicio 1300 como inicio. Se observa que los pulsos dark tienen
-mayor dispersión, para que el modelo tenga más información de los pulsos dark, se ha decidido, tomar como limite final, 2500.
-Además el usuario puede seleccionar con cuantas muestras quiere entrenar el modelo.
-
-"""
-
-"""## ----------- BLOQUE AUTOENCODERS ------------"""
-
-"""### Autoencoder 3 entrenado con pulsos Light y Dark
-
-Este autoencoder se entrena con los dos tipos de pulsos, al sumar ambos 1000 light + 1000 dark obtenemos que el
-autoencoder 3 se entrena con 2000 pulsos, el doble que los individuales. Se perdería la objetividad del experimento
-ya que uno de los modelos se entrena con más datos.
-solucion propuesta: de los 2000 pulsos de cada tipo elegiremos los 1000 primeros de cada tipo
-"""
-
-# AUTOENCODER 3: LIGHT + DARK
-
-"""**Conclusiones del entrenamiento de las 3 variantes de Autoencoder.**
-El primer Autoencdoer **solo** se ha entrenado con pulsos Light
-"""
-
-"""## Modelo Mixto Gaussiano (GMM)
-
-El GMM modela una distribución de probabilidad mediante combinación de gaussianas. La calidad de ese ajuste depende de la dimensionalidad de  
-los pulsos del conjunto de entrenamiento. En este caso 1200.
-
-Con 1200 dimensiones (muestras crudas), cada gaussiana necesita estimar una matriz de covarianza de 1200x1200 ≈ 720.000 parámetros. Con solo 1000 pulsos de entrenamiento, esto es un caso de "maldición de la dimensionalidad".
-
-**Solución: extraer las características más relevantes.**
-
-"""
-
-"""### CNN de regresión
-
-La otra alternativa que se sugiere en el artículo, es usar la CNN como modelo de regresión. En este caso, en lugar de calsificar el pulso como 
-Light o Dark (salida binaria, 1 ó 0). El modelo tratará de predecir la engergía que tiene un pulso de Light (salida continua, un número). 
-La detección de fondo se hace indirectamente, si el modelo predice bien la energía de un pulso de luz es porque se parece a la señal. Si la predicción
-es mala, es porque la morfología del pulso es diferente, Fondo.
-Para la regresión debemos elegir que característica es la que se tratará de rpedecir (el target). El artículo menciona directamente el Vmin y el FFT.
-
-Sin embargo, como en el pipeline no se ha implementado el ajuste en frecuencia, la alternativa directa es usar el mínimo de voltaje de la traza (V_min), que 
-es el valor del pico del pulso en dominio temporal y es proporcional a la energía absorbida.
-"""
