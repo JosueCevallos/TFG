@@ -908,57 +908,50 @@ def entrenar_autoencoders(X_light, X_dark, X_light_test, X_dark_test):
     RETURNS: Diccionario con los resultados de cada autoencoder."""
 
     """
-    PARA EL AUTOENCODER LIGHT-DARK, SE COMBINA EL CONJUNTO DE DATOS LIGHT+DARK PARA SU ENTRENAMIENTO
+    PARA EL AUTOENCODER COMBINED, SE COMBINA EL CONJUNTO DE DATOS LIGHT+DARK PARA SU ENTRENAMIENTO
     LA SUMA DE AMBOS CONJUNTOS DOBLA EL CONJUNTO DE ENTRENAMIENTO CON RESPECTO A LOS AUTOENCODERS LIGHT
     Y DARK POR SEPARADO, POR TANTO SE PERDERÍA LA OBJETIVIDAD DEL EXPERIMENTO.
-    SOLUCION: DE CADA TIPO ME QUEDO CON LA MITAD, PERO VAMOS A PROBAR QUE SUCEDE SI ENTRENO CON AMBOS (DOBLE)
     """
     resultados = {
-            "light": entrenar_autoencoder_light(X_light, X_dark),
-            "dark": entrenar_autoencoder_dark(X_light, X_dark),
+            "light": entrenar_autoencoder_light(X_light, X_dark, X_light_test, X_dark_test),
+            "dark": entrenar_autoencoder_dark(X_light, X_dark, X_light_test, X_dark_test),
             "combined": entrenar_autoencoder_combined(X_light, X_dark, X_light_test, X_dark_test)
             }
 
     return resultados
 
-def entrenar_autoencoder_light(X_light, X_dark):
+def entrenar_autoencoder_light(X_light, X_dark, X_light_test, X_dark_test):
 
     autoencoder_light, encoder_light = build_autoencoder(X_light.shape[1])
     autoencoder_light.summary()
-    scaler = MinMaxScaler()
-    X_light_norm = scaler.fit_transform(X_light)[..., np.newaxis] #train
-    X_dark_norm = scaler.transform(X_dark)[..., np.newaxis] #test
-    #X_light_norm, [X_dark_for_ae_light_test], mean_l, std_l = normalizar(X_light, [X_dark])
-    X_light_train, X_light_val = train_test_split(X_light_norm, test_size=0.2, random_state=42)
-    print(f"Train light: {X_light_train.shape} | Val light: {X_light_val.shape}")
+    X_train, X_val, X_test, y_test = prepara_datos_autoencoder(X_light, X_dark, X_light_test, X_dark_test, modelo="light")
+    print(f"Train light: {X_train.shape} | Val light: {X_val.shape}")
     history_light = autoencoder_light.fit(
-        X_light_train, X_light_train,
-        validation_data=(X_light_val, X_light_val),
+        X_train, X_train,
+        validation_data=(X_val, X_val),
         epochs=EPOCHS,
         batch_size=BATCH_SIZE,
         shuffle=True
     )
     print("Fin entrenamiento Autoencoder Light")
+
     return {"autoencoder": autoencoder_light,
             "encoder": encoder_light,
             "history": history_light,
-            "X_train": X_light_train,
-            "X_val": X_light_val,
-            "X_test": X_dark_norm
+            "X_train": X_train,
+            "X_val": X_val,
+            "X_test": X_test,
+            "y_test": y_test #etiquetas de test para evaluación
             }
 
-def entrenar_autoencoder_dark(X_light, X_dark):
+def entrenar_autoencoder_dark(X_light, X_dark, X_light_test, X_dark_test):
     autoencoder_dark, encoder_dark = build_autoencoder(X_light.shape[1])
     autoencoder_dark.summary()
-    scaler = MinMaxScaler()
-    X_dark_norm = scaler.fit_transform(X_dark)[..., np.newaxis] #train 
-    X_light_norm = scaler.transform(X_light)[..., np.newaxis] #test
-    #X_dark_norm, [X_light_for_ae_dark_test], mean_d, std_d = normalizar(X_dark, [X_light])
-    X_dark_train, X_dark_val = train_test_split(X_dark_norm, test_size=0.2, random_state=42)
-    print(f"Train dark: {X_dark_train.shape} | Val dark: {X_dark_val.shape}")
+    X_train, X_val, X_test, y_test = prepara_datos_autoencoder(X_light, X_dark, X_light_test, X_dark_test, modelo="dark")
+    print(f"Train dark: {X_train.shape} | Val dark: {X_val.shape}")
     history_dark = autoencoder_dark.fit(
-        X_dark_train, X_dark_train,
-        validation_data=(X_dark_val, X_dark_val),
+        X_train, X_train,
+        validation_data=(X_val, X_val),
         epochs=EPOCHS,
         batch_size=BATCH_SIZE,
         shuffle=True
@@ -967,9 +960,10 @@ def entrenar_autoencoder_dark(X_light, X_dark):
     return {"autoencoder": autoencoder_dark,
             "encoder": encoder_dark,
             "history": history_dark,
-            "X_train": X_dark_train,
-            "X_val": X_dark_val,
-            "X_test": X_light_norm
+            "X_train": X_train,
+            "X_val": X_val,
+            "X_test": X_test,
+            "y_test": y_test #etiquetas de test para evaluación
             }
 
 def entrenar_autoencoder_combined(X_light, X_dark, X_light_test, X_dark_test):
@@ -979,13 +973,7 @@ def entrenar_autoencoder_combined(X_light, X_dark, X_light_test, X_dark_test):
     """mitad = len(X_light) // 2 #dark tiene el mismo tamaño
         X_light = X_light[:mitad]
         X_dark  =  X_dark[:mitad]"""
-    X_combined = np.concatenate([X_light, X_dark], axis=0)
-    X_combined_test = np.concatenate([X_light_test, X_dark_test], axis=0)
-    scaler = MinMaxScaler()
-    X_combined_norm = scaler.fit_transform(X_combined)[..., np.newaxis]
-    X_combined_test_norm = scaler.transform(X_combined_test)[..., np.newaxis]
-    #X_combined_norm, [X_light_for_combined_test, X_dark_for_combined_test], mean_b, std_b = normalizar(X_combined, [X_light_test, X_dark_test])
-    X_combined_train, X_combined_val = train_test_split(X_combined_norm, test_size=0.2, random_state=42)
+    X_combined_train, X_combined_val, X_combined_test_norm, y_combined_test = prepara_datos_autoencoder(X_light, X_dark, X_light_test, X_dark_test, modelo="combined")
     print(f"Train combined: {X_combined_train.shape} | Val combined: {X_combined_val.shape}")
     history_combined = autoencoder_combined.fit(
         X_combined_train, X_combined_train,
@@ -1000,17 +988,31 @@ def entrenar_autoencoder_combined(X_light, X_dark, X_light_test, X_dark_test):
             "history": history_combined,
             "X_train": X_combined_train,
             "X_val": X_combined_val,
-            "X_test": X_combined_test_norm
+            "X_test": X_combined_test_norm,
+            "y_test": y_combined_test #etiquetas de test para evaluación
             }
 
 def evaluar_autoencoders(resultados):
 
+    # ========== FUNCIONES DE PERDIDA DE CADA AUTOENCODER =============
     funciones_perdida_autoencoders(resultados["light"]["history"], resultados["dark"]["history"], resultados["combined"]["history"])
-    errores_autoencoders = calcula_error_reconstruccion_autoencoders(resultados)
-    comparar_roc_autoencoders(errores_autoencoders)
-    visualizar_scatterplots_autoencoders(resultados)
+    # == ERROR DE RECONSTRUCCION SOBRE X_val para posterior threshold ==
+    errores_validacion = calcular_error_reconstruccion_autoencoders(resultados)
+    resultados_roc = deteccion_anomalias(errores_validacion, resultados)
 
-    return errores_autoencoders
+    # Mejor variante (mayor AUC), la que se usará como "el Autoencoder" en
+    # la comparación final de todos los modelos (opción 10 del menú) —
+    # mismo criterio que evaluar_gmm().
+    mejor_variante = max(resultados_roc, key=lambda k: resultados_roc[k]["auc"])
+    r_mejor = resultados_roc[mejor_variante]
+    print(f"Mejor variante de Autoencoder: {r_mejor['titulo']} (AUC={r_mejor['auc']:.3f})")
+
+    return {
+        "roc_auc_ae": r_mejor["auc"],
+        "fpr_ae": r_mejor["fpr"],
+        "tpr_ae": r_mejor["tpr"],
+        "nombre_mejor_ae": r_mejor["titulo"],
+    }
 
 def funciones_perdida_autoencoders(history_light, history_dark, history_combined):
     """
