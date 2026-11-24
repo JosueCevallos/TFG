@@ -574,16 +574,16 @@ def entrenar_modelo_cnn(X_light,X_dark,X_light_test,X_dark_test):
 
     return model, history, X_test, y_test
 
-def preparar_datos_cnn_binaria(X_light_cnn, X_dark_cnn, X_light_cnn_test,
-                    X_dark_cnn_test, val_size=0.2, random_state=42):
+def preparar_datos_cnn_binaria(X_light, X_dark, X_light_test,
+                    X_dark_test, val_size=0.2, random_state=42):
     """
     OBJ:Preparar los conjuntos de entrenamiento,
         validación y test para la CNN binaria.
     PARAMS:
-        X_light_cnn : (np.ndarray)Pulsos LIGHT de entrenamiento.
-        X_dark_cnn : (np.ndarray)Pulsos DARK de entrenamiento.
-        X_light_cnn_test : (np.ndarray)Pulsos LIGHT de test.
-        X_dark_cnn_test : (np.ndarray)Pulsos DARK de test.
+        X_light : (np.ndarray)Pulsos LIGHT de entrenamiento.
+        X_dark : (np.ndarray)Pulsos DARK de entrenamiento.
+        X_light_test : (np.ndarray)Pulsos LIGHT de test.
+        X_dark_test : (np.ndarray)Pulsos DARK de test.
         val_size : (float)Porcentaje destinado a validación.
         random_state : (int)Semilla para reproducibilidad.
     RETURNS:
@@ -592,14 +592,14 @@ def preparar_datos_cnn_binaria(X_light_cnn, X_dark_cnn, X_light_cnn_test,
     """
 
     # Variables dependientes
-    y_light = np.zeros(len(X_light_cnn), dtype=int)
-    y_dark = np.ones(len(X_dark_cnn), dtype = int)
-    y_light_test = np.zeros(len(X_light_cnn_test), dtype=int)
-    y_dark_test = np.ones(len(X_dark_cnn_test), dtype=int)
+    y_light = np.zeros(len(X_light), dtype=int)
+    y_dark = np.ones(len(X_dark), dtype = int)
+    y_light_test = np.zeros(len(X_light_test), dtype=int)
+    y_dark_test = np.ones(len(X_dark_test), dtype=int)
 
     # Combinar conjuntos
-    X = np.concatenate([X_light_cnn, X_dark_cnn], axis=0)
-    X_test = np.concatenate([X_light_cnn_test, X_dark_cnn_test],axis=0)
+    X = np.concatenate([X_light, X_dark], axis=0)
+    X_test = np.concatenate([X_light_test, X_dark_test],axis=0)
     y = np.concatenate([y_light, y_dark],axis=0)
     y_test = np.concatenate([y_light_test, y_dark_test],axis=0)
 
