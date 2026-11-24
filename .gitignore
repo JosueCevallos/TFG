@@ -30,3 +30,6 @@ dudas_reunion.txt
 # Copias de seguridad y metadatos de Windows
 backup/
 *:Zone.Identifier
+
+# apuntes y reportes locales
+apuntes_reportes/
