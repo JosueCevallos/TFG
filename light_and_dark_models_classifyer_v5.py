@@ -1043,54 +1043,141 @@ def funciones_perdida_autoencoders(history_light, history_dark, history_combined
         ax.grid(True, linewidth=0.4)
 
     plt.tight_layout()
-    #guardar_figura("autoencoders_curvas_perdida")
+    guardar_figura("autoencoders_curvas_perdida")
     plt.show()
 
-# ============================================================
-# EVALUACIÓN FINAL: ERROR DE RECONSTRUCCIÓN POR CLASE
-# ============================================================
-def calcula_error_reconstruccion_autoencoders(resultados):
+def error_reconstruccion(modelo, X):
+    """MAE por muestra.
+    PARAMS:
+        modelo : (keras.Model) Autoencoder entrenado.
+        X : (np.ndarray) Conjunto de datos a evaluar.
+    RETURNS:
+        errores : (np.ndarray) Error de reconstrucción por muestra.
+        X_pred : (np.ndarray) Reconstrucción de X por el autoencoder."""
+    X_pred = modelo.predict(X, verbose=0)
+    return np.mean(np.abs(X - X_pred), axis=(1, 2)), X_pred
+
+def calcular_error_reconstruccion_autoencoders(resultados):
+    """
+    OBJ: Calcula el error de reconstrucción de cada autoencoder sobre su conjunto de validación
+    PARAMS:
+        resultados : (dict) Diccionario con los resultados de cada autoencoder.
+    RETURNS:
+        errores_autoencoders : (dict) Diccionario con los errores de reconstrucción de cada autoencoder.
+    """
     # --- Autoencoder light ---
-    err_light_on_light, X_light_pred_onLight = error_reconstruccion(resultados["light"]["autoencoder"], resultados["light"]["X_val"])
-    err_light_on_dark, X_dark_pred_onLight  = error_reconstruccion(resultados["light"]["autoencoder"], resultados["light"]["X_test"]) #pulsos dark normalizados obtenidos de la normalizacion de los pulsos light
-
+    err_reconstruccion_light, X_light_pred_onLight = error_reconstruccion(resultados["light"]["autoencoder"], resultados["light"]["X_val"])
     # --- Autoencoder dark ---
-    err_dark_on_dark, X_dark_pred_onDark   = error_reconstruccion(resultados["dark"]["autoencoder"], resultados["dark"]["X_val"])
-    err_dark_on_light, X_light_pred_onDark  = error_reconstruccion(resultados["dark"]["autoencoder"], resultados["dark"]["X_test"]) #pulsos light normalizados obtenidoa de la normalizacion de los pulsos dark
-
-    # --- Autoencoder ambos pulsos (normalizamos pulsos light y dark)
-    #X_light_for_both = ((X_light - mean_b) / std_b)[..., np.newaxis]
-    err_both_on_light, X_light_pred_onBoth = error_reconstruccion(resultados["combined"]["autoencoder"], resultados["combined"]["X_val"])
-    err_both_on_dark,  X_dark_pred_onBoth  = error_reconstruccion(resultados["combined"]["autoencoder"], resultados["combined"]["X_test"]) #conjunto de test combinado normalizado
-
-    # Distribuciones de error
-    fig, axes = plt.subplots(1, 3, figsize=(16, 4))
-    configs_eval = [
-        (err_light_on_light, err_light_on_dark, 'Entrenado con Light', 'orange', 'black'),
-        (err_dark_on_light,  err_dark_on_dark, 'Entrenado con Dark',  'orange', 'black'),
-        (err_both_on_light,  err_both_on_dark, 'Entrenado con Light+Dark', 'orange', 'black')]
-
-    for ax, (err_l, err_d, title, c_l, c_d) in zip(axes, configs_eval):
-        ax.hist(err_l, bins=40, alpha=0.6, color=c_l, label='Light', density=True)
-        ax.hist(err_d, bins=40, alpha=0.6, color=c_d, label='Dark',  density=True)
-        ax.set_title(title)
-        ax.set_xlabel('Error de reconstrucción (MAE)')
-        ax.set_ylabel('Densidad')
-        ax.legend()
-        ax.grid(True, linewidth=0.4)
-
-    plt.suptitle('Distribución del error de reconstrucción por variante', y=1.02)
-    plt.tight_layout()
-    #guardar_figura("autoencoders_error_reconstruccion")
-    plt.show()
+    err_reconstruccion_dark, X_dark_pred_onDark = error_reconstruccion(resultados["dark"]["autoencoder"], resultados["dark"]["X_val"])
+    # --- Autoencoder combined ---
+    err_reconstruccion_combined, X_combined_pred_onCombined = error_reconstruccion(resultados["combined"]["autoencoder"], resultados["combined"]["X_val"])
 
     errores_autoencoders = {
-        "light":    {"err_on_light": err_light_on_light, "err_on_dark": err_light_on_dark},
-        "dark":     {"err_on_light": err_dark_on_light,  "err_on_dark": err_dark_on_dark},
-        "combined": {"err_on_light": err_both_on_light,   "err_on_dark": err_both_on_dark}
+        "light": {"err_val": err_reconstruccion_light, "X_pred": X_light_pred_onLight},
+        "dark": {"err_val": err_reconstruccion_dark, "X_pred": X_dark_pred_onDark},
+        "combined": {"err_val": err_reconstruccion_combined, "X_pred": X_combined_pred_onCombined}
     }
 
     return errores_autoencoders
+
+def deteccion_anomalias(errores_autoencoders, resultados):
+    """
+    OBJ: Detección de anomalías mediante el cálculo del error de reconstrucción
+         y la comparación con un umbral (threshold) para cada autoencoder. Se reprsentan también
+         otras medidas de rendimiento de cada autoencoder.
+    PARAMS:
+        errores_autoencoders : (dict) Diccionario con los errores de reconstrucción de cada autoencoder.
+        resultados : (dict) Diccionario con los resultados de cada autoencoder.
+    RETURNS:
+        resultados_roc : (dict) por variante, con fpr/tpr/auc/titulo (salida de curva_roc_y_AUC()
+                          para cada una), para poder elegir después la mejor variante.
+    """
+    # Calcular el umbral (threshold) para cada autoencoder
+    thresholds = {}
+    for variante in errores_autoencoders.keys():
+        thresholds[variante] = np.percentile(errores_autoencoders[variante]["err_val"], PERCENTILE_THRESHOLD)
+
+    # Evaluar el rendimiento de cada autoencoder en el conjunto de test
+    resultados_roc = {}
+    for variante in errores_autoencoders.keys():
+        X_test = resultados[variante]["X_test"]
+        y_test = resultados[variante]["y_test"]
+        err_reconstruccion_test, _ = error_reconstruccion(resultados[variante]["autoencoder"], X_test) #el segundo elemento es la reconstruccion, que no la necesitamos aquí
+
+        # Predicciones basadas en el umbral
+        y_pred = (err_reconstruccion_test > thresholds[variante]).astype(int)
+        # Informe de clasificación
+        print(f"\nInforme de clasificación para Autoencoder {variante.capitalize()}:")
+        print(classification_report(y_test, y_pred, target_names=["Normal", "Anomalía"]))
+        # Accuracy
+        accuracy = accuracy_score(y_test, y_pred)
+        print(f"Accuracy: {accuracy:.3f}")
+        # Histograma de errores de reconstruccion sobre X_test
+        histograma_error_reconstruccion(err_reconstruccion_test, y_test, thresholds[variante], f"Histograma — Autoencoder {variante.capitalize()}")
+        # Matriz de confusión
+        matriz_confusion(y_test, y_pred, f"Matriz de confusión — Autoencoder {variante.capitalize()}")
+        # Curva ROC
+        titulo_variante = f"Autoencoder {variante.capitalize()}"
+        fpr, tpr, roc_auc_variante = curva_roc_y_AUC(y_test, err_reconstruccion_test, f"Curva ROC — {titulo_variante}")
+        resultados_roc[variante] = {"fpr": fpr, "tpr": tpr, "auc": roc_auc_variante, "titulo": titulo_variante}
+
+    return resultados_roc
+
+def matriz_confusion(y_true, y_pred, title):
+    """
+    OBJ: Representa la matriz de confusión.
+    PARAMS:
+        y_true : (np.ndarray) Etiquetas verdaderas.
+        y_pred : (np.ndarray) Etiquetas predichas.
+        title : (str) Título de la gráfica.
+        labels : (list) Lista de etiquetas para los ejes.
+    RETURNS:
+        None
+    """
+    cm = confusion_matrix(y_true, y_pred)
+    plt.figure(figsize=(5, 4))
+    sns.heatmap(
+        cm,
+        annot=True,
+        fmt="d",
+        cmap="Blues",
+        xticklabels=["Normal", "Anomalía"],
+        yticklabels=["Normal", "Anomalía"]
+    )
+    plt.ylabel("Etiqueta real")
+    plt.xlabel("Etiqueta predicha")
+    plt.title(title)
+    plt.tight_layout()
+    guardar_figura(f"{title.replace(' ', '_').lower()}_matriz_confusion")
+    plt.show()
+
+def curva_roc_y_AUC(y_true, y_scores, title):
+    """
+    OBJ: Representa la curva ROC y calcula el AUC.
+    PARAMS:
+        y_true : (np.ndarray) Etiquetas verdaderas.
+        y_scores : (np.ndarray) Puntuaciones de predicción.
+        title : (str) Título de la gráfica.
+    RETURNS:
+        fpr, tpr : (np.ndarray) Puntos de la curva ROC.
+        roc_auc : (float) Área bajo la curva ROC.
+    """
+    fpr, tpr, _ = roc_curve(y_true, y_scores)
+    roc_auc = auc(fpr, tpr)
+
+    plt.figure(figsize=(7, 6))
+    plt.plot(fpr, tpr, color='seagreen', linewidth=2, label=f'ROC curve (AUC={roc_auc:.3f})')
+    plt.plot([0, 1], [0, 1], 'k--', linewidth=0.8)
+    plt.xlabel('Tasa de falsos positivos')
+    plt.ylabel('Tasa de verdaderos positivos')
+    plt.title(title)
+    plt.legend(loc='lower right')
+    plt.grid(True, linewidth=0.4)
+    plt.tight_layout()
+    guardar_figura(f"{title.replace(' ', '_').lower()}_roc")
+    plt.show()
+
+    return fpr, tpr, roc_auc
 
 def comparar_roc_autoencoders(errores_autoencoders):
     """
@@ -1131,6 +1218,29 @@ def comparar_roc_autoencoders(errores_autoencoders):
 
     return resultados_roc, mejor_variante
 
+def histograma_error_reconstruccion(err_reconstruccion_test, y_test, threshold, title):
+    """
+    OBJ: Representa el histograma del error de reconstrucción.
+    PARAMS:
+        err_reconstruccion_test : (np.ndarray) Error de reconstrucción sobre el conjunto de test.
+        y_test : (np.ndarray) Etiquetas verdaderas del conjunto de test.
+        threshold : (float) Umbral para la detección de anomalías.
+        title : (str) Título de la gráfica.
+    RETURNS:
+        None
+    """ 
+    plt.figure(figsize=(7, 6))
+    plt.hist(err_reconstruccion_test[y_test == 0], bins=30, alpha=0.5, label='Normal', color='orange')
+    plt.hist(err_reconstruccion_test[y_test == 1], bins=30, alpha=0.5, label='Anomalía', color='steelblue')
+    plt.axvline(threshold, color='red', linestyle='--', label=f'Threshold ({threshold:.3f})')
+    plt.xlabel('Error de reconstrucción (MAE)')
+    plt.ylabel('Frecuencia')
+    plt.title(title)
+    plt.legend()
+    plt.grid(True, linewidth=0.4)
+    plt.tight_layout()
+    guardar_figura(f"{title.replace(' ', '_').lower()}_histograma_error_reconstruccion")
+    plt.show()
 
 def calcular_roc_autoencoders(errores_autoencoders):
     """
@@ -1171,30 +1281,6 @@ def calcular_roc_autoencoders(errores_autoencoders):
 
     return resultados_roc
 
-def error_reconstruccion(modelo, X):
-    """MAE por muestra."""
-    X_pred = modelo.predict(X, verbose=0)
-    return np.mean(np.abs(X - X_pred), axis=(1, 2)), X_pred
-
-def normalizar(X_train, X_test_list):
-    """
-    OBJ: Normaliza el conjunto X_train con su propia media y
-        desviación. Aplica los mismos parámetros a cada array en X_test_list.
-        Añade canal de dimensión.
-    PARAMS:
-        X_train : (np.ndarray) Conjunto de entrenamiento.
-        X_test_list : (lista de np.ndarrady) Conjunto de testing.
-    RETURNS:
-        X_train_norm : (np.ndarray) Conjunto de entrenamiento normalizado.
-        X_test_ae  : (lista de np.ndarrady) Conjunto de testing normalizado.
-        mean : (float) Media del conjunto de entrenamiento.
-        std : (float) Desviación estándar del conjunto de entrenamiento.
-    """
-    mean = np.mean(X_train)
-    std  = np.std(X_train)
-    X_train_norm = ((X_train - mean) / std)[..., np.newaxis]
-    X_test_ae  = [((X - mean) / std)[..., np.newaxis] for X in X_test_list]
-    return X_train_norm, X_test_ae, mean, std
 # =============================================
 # SCATTER PLOTS DEL ESPACIO LATENTE (PCA 2D)
 # =============================================
