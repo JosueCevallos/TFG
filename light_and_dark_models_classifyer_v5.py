@@ -771,7 +771,60 @@ def evaluar_cnn(model, history, X_test_cnn, y_test_cnn):
     plt.show()
 
     return y_proba, y_pred, roc_auc_cnn, fpr_cnn, tpr_cnn
-# ARQUITECTURA COMÚN DE LOS AUTOENCODERS
+
+# ============================================================
+# BLOQUE FUNCIONES DE LOS AUTOENCODERS
+# 1. ARQUITECTURA DEL AUTOENCODER: REVISADA Y VALIDADA
+# 2. FUNCION PREPARAR DATOS AUTOENCODERS
+# ============================================================
+
+def prepara_datos_autoencoder(X_light, X_dark, X_light_test, X_dark_test, modelo):
+    """
+    OBJ: Prepara los conjuntos de entrenamiento y test para los autoencoders.
+    PARAMS:
+        X_light : (np.ndarray) Conjunto de datos LIGHT para entrenamiento (incluido Validacion).
+        X_dark : (np.ndarray) Conjunto de datos DARK para entrenamiento (incluido Validacion).
+        X_light_test : (np.ndarray) Conjunto de datos LIGHT para test.
+        X_dark_test : (np.ndarray) Conjunto de datos DARK para test.
+        modelo : (str) Tipo de autoencoder a entrenar ("light", "dark" o "combined").
+    RETURNS:
+        X_train, X_test, y_test
+    """
+    
+    # combinar conjuntos de test
+    X_test = np.concatenate([X_light_test, X_dark_test], axis=0)
+
+    # asignar conjuntos de entrenamiento y etiquetas según el tipo de modelo
+    if modelo in ["light", "combined"]:
+        # señal señal normal (light): 0, anómala (dark) : 1
+        y_test = np.concatenate([np.zeros(len(X_light_test), dtype=int), np.ones(len(X_dark_test), dtype=int)], axis=0)
+        if modelo == "light":
+            X_base = X_light
+        else: # combined
+            X_combined = np.concatenate([X_light, X_dark], axis=0)
+            X_base = X_combined
+    elif modelo == "dark":
+        # señal normal (dark): 0, anómala (light) : 1
+        y_test = np.concatenate([np.ones(len(X_light_test), dtype=int), np.zeros(len(X_dark_test), dtype=int)], axis=0)
+        X_base = X_dark
+    else:
+        raise ValueError("Modelo no reconocido. Debe ser 'light', 'dark' o 'combined'.")
+
+    # normalización
+    scaler = MinMaxScaler()
+    X_norm = scaler.fit_transform(X_base)[..., np.newaxis]  # Se ajusta al dataset correspondiente
+    X_test = scaler.transform(X_test)[..., np.newaxis]
+
+    # división del conjunto de entrenamiento en train y validation
+    X_train, X_val = train_test_split(X_norm, test_size=0.2, random_state=42)
+
+    #Shuffle del conjunto de testing
+    indices_test = np.random.permutation(len(X_test))
+    X_test = X_test[indices_test]
+    y_test = y_test[indices_test]
+
+    return X_train, X_val, X_test, y_test
+
 def build_autoencoder(input_len):
     """
     OBJ:
